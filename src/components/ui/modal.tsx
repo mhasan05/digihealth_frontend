@@ -42,7 +42,7 @@ export function Modal({ isOpen, onClose, title, subtitle, children, size = 'md' 
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -54,26 +54,26 @@ export function Modal({ isOpen, onClose, title, subtitle, children, size = 'md' 
       />
       <div
         className={cn(
-          'relative w-full bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-scale-in',
+          'relative w-full bg-white rounded-2xl shadow-2xl flex flex-col max-h-[92vh] animate-scale-in',
           sizeClasses[size]
         )}
       >
-        <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100">
-          <div>
-            <h2 id="modal-title" className="text-base font-bold text-slate-900">
+        <div className="flex items-start justify-between px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100">
+          <div className="min-w-0 flex-1">
+            <h2 id="modal-title" className="text-base font-bold text-slate-900 leading-tight">
               {title}
             </h2>
             {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
           </div>
           <button
             onClick={onClose}
-            className="ml-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0"
+            className="ml-3 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0"
             aria-label="বন্ধ করুন"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="overflow-y-auto flex-1 px-6 py-5">{children}</div>
+        <div className="overflow-y-auto flex-1 px-5 sm:px-6 py-4 sm:py-5">{children}</div>
       </div>
     </div>
   )

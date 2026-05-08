@@ -103,27 +103,38 @@ export function Header({ title, onMenuClick }: HeaderProps) {
   const hasMultiplePortals = availablePortals.length > 1
 
   return (
-    <header className="bg-white border-b border-slate-100 px-4 lg:px-6 py-3 flex items-center justify-between sticky top-0 z-10 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+    <header className="bg-white border-b border-slate-100 px-3 sm:px-4 lg:px-6 py-3 flex items-center justify-between sticky top-0 z-10 shadow-[0_1px_3px_rgba(0,0,0,0.06)] gap-2">
       {/* Left — hamburger + title */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors"
+          className="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors flex-shrink-0"
           aria-label="Open menu"
         >
           <Menu className="w-5 h-5" />
         </button>
-        <div>
-          <h1 className="text-sm font-bold text-slate-900 leading-tight">{title}</h1>
-        </div>
+        <h1 className="text-sm font-bold text-slate-900 leading-tight truncate">{title}</h1>
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
 
         {/* Portal switcher — only shown if user has 2+ portals */}
         {hasMultiplePortals && (
           <div className="relative" ref={portalRef}>
+            {/* Compact icon-only on mobile */}
+            <button
+              onClick={() => { setPortalOpen(o => !o); setProfileOpen(false) }}
+              className={cn(
+                'sm:hidden flex items-center justify-center w-9 h-9 rounded-xl border transition-all',
+                activeMeta.bg,
+                activeMeta.color,
+              )}
+              aria-label="Switch portal"
+            >
+              <ActiveIcon className="w-4 h-4" />
+            </button>
+            {/* Full label on tablet/desktop */}
             <button
               onClick={() => { setPortalOpen(o => !o); setProfileOpen(false) }}
               className={cn(

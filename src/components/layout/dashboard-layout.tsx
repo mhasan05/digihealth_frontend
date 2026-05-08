@@ -26,7 +26,7 @@ export function DashboardLayout({ children, pageTitle, hospitalName }: Dashboard
           onMenuClick={() => setSidebarOpen(true)}
         />
         <main className="flex-1 overflow-y-auto">
-          <div className="p-4 lg:p-6 max-w-screen-2xl mx-auto animate-fade-in">
+          <div className="p-3 sm:p-4 lg:p-6 max-w-screen-2xl mx-auto animate-fade-in">
             {children}
           </div>
         </main>

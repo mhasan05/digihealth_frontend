@@ -124,7 +124,6 @@ export function Sidebar({ hospitalName, isOpen, onClose }: SidebarProps) {
 
   const meta = PORTAL_META[activePortal]
   const items = NAV_ITEMS[activePortal]
-  const PortalIcon = meta.icon
 
   const otherPortals = availablePortals.filter(p => p !== activePortal)
 
@@ -172,18 +171,6 @@ export function Sidebar({ hospitalName, isOpen, onClose }: SidebarProps) {
           >
             <X className="w-4 h-4" />
           </button>
-        </div>
-
-        {/* Active portal badge */}
-        <div className="px-4 pt-4 pb-3">
-          <div className={cn('flex items-center gap-2.5 px-3 py-2.5 rounded-xl', meta.badge)}>
-            <PortalIcon className={cn('w-4 h-4 flex-shrink-0', meta.accent)} />
-            <div className="flex-1 min-w-0">
-              <p className={cn('text-xs font-bold leading-tight truncate', meta.activeText)}>
-                {t(`portal.${activePortal}`)}
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Hospital chip */}

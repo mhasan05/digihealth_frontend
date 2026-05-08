@@ -597,7 +597,7 @@ export default function AppointmentsPage() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input label="পূর্ণ নাম"   error={walkInForm.formState.errors.name?.message}  {...walkInForm.register('name')} />
                     <Input label="ফোন নম্বর"   error={walkInForm.formState.errors.phone?.message} {...walkInForm.register('phone')} />
                     <Input label="বয়স" type="number" error={walkInForm.formState.errors.age?.message} {...walkInForm.register('age')} />
@@ -610,7 +610,7 @@ export default function AppointmentsPage() {
                       {...walkInForm.register('gender')}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3 items-end">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                     <Select label="রক্তের গ্রুপ (ঐচ্ছিক)"
                       options={[
                         { value: '', label: 'অজানা' },
@@ -638,7 +638,7 @@ export default function AppointmentsPage() {
             optional
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Input label="তারিখ" type="date" error={aptForm.formState.errors.date?.message} {...aptForm.register('date')} />
             <Input label="সময়"   type="time" error={aptForm.formState.errors.time?.message}  {...aptForm.register('time')} />
           </div>

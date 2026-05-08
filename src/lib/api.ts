@@ -288,6 +288,9 @@ export const api = {
     getDashboard: (_patientId: string) =>
       get<Patient>('/api/patient/me/'),
 
+    updateMyProfile: (data: Partial<Pick<Patient, 'name' | 'age' | 'gender' | 'blood_group' | 'address'>> & { email?: string }) =>
+      put<Patient>('/api/patient/me/', data),
+
     getMetrics: (_patientId: string) =>
       get<HealthMetric[]>('/api/patient/metrics/'),
 

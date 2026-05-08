@@ -12,37 +12,30 @@ import { useAuthStore } from '@/store/auth-store'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
-  HeartPulse, Shield, Building2, ChevronRight,
-  Eye, EyeOff, Loader2, Users,
+  HeartPulse, ShieldCheck, Building2, ChevronRight,
+  Eye, EyeOff, Users, FlaskConical, BedDouble,
 } from 'lucide-react'
 import { derivePortals, PORTAL_ROUTES } from '@/types'
 
 const loginSchema = z.object({
-  identifier: z.string().min(1, 'This field is required'),
-  password:   z.string().min(1, 'Password is required'),
+  identifier: z.string().min(1, 'এই ঘরটি পূরণ করতে হবে'),
+  password:   z.string().min(1, 'পাসওয়ার্ড দিন'),
   rememberMe: z.boolean().optional(),
 })
 type LoginForm = z.infer<typeof loginSchema>
 
-const demoRoles = [
-  { role: 'admin',     label: 'Admin',       color: 'bg-violet-600 hover:bg-violet-700', icon: '🛡️' },
-  { role: 'owner',     label: 'Owner',        color: 'bg-blue-600   hover:bg-blue-700',   icon: '🏥' },
-  { role: 'manager',   label: 'Manager',      color: 'bg-teal-600   hover:bg-teal-700',   icon: '📋' },
-  { role: 'pathologist', label: 'Pathologist', color: 'bg-amber-600 hover:bg-amber-700',  icon: '🔬' },
-  { role: 'patient',   label: 'Patient',      color: 'bg-green-600   hover:bg-green-700',    icon: '👤' },
-  { role: 'multiRole', label: 'Multi-Role',   color: 'bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700', icon: '✨' },
-]
-
 const features = [
-  { icon: HeartPulse, text: 'Portable Health ID — accepted at any connected hospital' },
-  { icon: Shield,     text: 'Full privacy control — see who accessed your records' },
-  { icon: Building2,  text: 'Multi-hospital connected network' },
-  { icon: Users,      text: 'Multi-role access — switch portals without re-login' },
+  { icon: HeartPulse,   title: 'পোর্টেবল হেলথ আইডি',     text: 'যেকোনো সংযুক্ত হাসপাতালে ব্যবহারযোগ্য' },
+  { icon: ShieldCheck,  title: 'সম্পূর্ণ গোপনীয়তা',        text: 'কে কখন রেকর্ড দেখেছে — সব দেখুন' },
+  { icon: Building2,    title: 'মাল্টি-হাসপাতাল',           text: 'এক অ্যাকাউন্টে একাধিক হাসপাতাল' },
+  { icon: Users,        title: 'মাল্টি-রোল অ্যাক্সেস',     text: 'এক লগইনে সব পোর্টাল' },
+  { icon: FlaskConical, title: 'ল্যাব ওয়ার্কফ্লো',          text: 'অর্ডার থেকে রিপোর্ট — এক জায়গায়' },
+  { icon: BedDouble,    title: 'ভর্তি ব্যবস্থাপনা',         text: 'বেড, নার্স ও বিল রিয়েল-টাইম' },
 ]
 
 export default function LoginPage() {
   const [showPass, setShowPass] = useState(false)
-  const [error,   setError]   = useState('')
+  const [error,    setError]    = useState('')
   const router = useRouter()
   const { login } = useAuthStore()
 
@@ -60,130 +53,150 @@ export default function LoginPage() {
       const portals = derivePortals(user.roles)
       router.push(PORTAL_ROUTES[portals[0]])
     },
-    onError: (err: Error) => setError(err.message || 'Login failed'),
-  })
-
-  const demoMutation = useMutation({
-    mutationFn: (role: string) => api.auth.loginAsRole(role),
-    onSuccess: ({ user, token }) => {
-      login(user, token)
-      const portals = derivePortals(user.roles)
-      router.push(PORTAL_ROUTES[portals[0]])
-    },
+    onError: (err: Error) => setError(err.message || 'লগইন ব্যর্থ হয়েছে'),
   })
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel */}
-      <div
-        className="hidden lg:flex lg:w-[46%] flex-col justify-between p-12 relative overflow-hidden"
-        style={{ background: 'linear-gradient(145deg, #0c2e18 0%, #133d22 45%, #1a5c35 100%)' }}
+    <div className="min-h-screen w-full flex bg-slate-50">
+      {/* ── Left Panel (desktop only) ────────────────────────────────────── */}
+      <aside
+        className="hidden lg:flex lg:w-[48%] xl:w-[52%] flex-col justify-between relative overflow-hidden"
+        style={{ background: 'linear-gradient(160deg, #052e16 0%, #0f3a21 35%, #14532d 70%, #15803d 100%)' }}
       >
-        {/* Decorative blobs */}
-        <div className="absolute top-[-80px] right-[-80px] w-[320px] h-[320px] rounded-full bg-green-500/10 pointer-events-none" />
-        <div className="absolute bottom-[-60px] left-[-60px] w-[240px] h-[240px] rounded-full bg-emerald-400/8 pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-green-600/5 pointer-events-none" />
+        {/* Decorative blurred orbs */}
+        <div className="absolute -top-40 -right-32 w-[420px] h-[420px] rounded-full bg-emerald-400/15 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-40 -left-32 w-[380px] h-[380px] rounded-full bg-green-400/10 blur-3xl pointer-events-none" />
+        <div className="absolute top-1/3 right-1/4 w-[280px] h-[280px] rounded-full bg-teal-300/5 blur-3xl pointer-events-none" />
 
-        {/* Logo */}
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg shadow-green-900/40">
-            <HeartPulse className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <p className="text-white font-bold text-xl leading-tight">DigiHealth</p>
-            <p className="text-green-300/60 text-xs">CMS Platform</p>
-          </div>
-        </div>
+        {/* Subtle dotted grid */}
+        <div
+          className="absolute inset-0 opacity-[0.05] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+            backgroundSize: '28px 28px',
+          }}
+        />
 
-        {/* Main content */}
-        <div className="relative z-10">
-          <p className="text-green-300/80 text-sm font-semibold tracking-widest uppercase mb-4">
-            Bangladesh's Leading
-          </p>
-          <h2 className="text-4xl font-extrabold text-white leading-tight mb-6">
-            Digital Health<br />
-            <span className="text-green-400">Management</span><br />
-            Platform
-          </h2>
-          <p className="text-green-100/60 text-sm leading-relaxed mb-8 max-w-xs">
-            Hospital management, patient tracking, lab workflow, and multi-role access — all in one platform.
-          </p>
-
-          <div className="space-y-4">
-            {features.map(({ icon: Icon, text }, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-green-500/20 border border-green-500/30 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-4 h-4 text-green-400" />
-                </div>
-                <p className="text-green-100/70 text-sm leading-relaxed">{text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Bottom stats */}
-        <div className="relative z-10">
-          <div className="flex items-center gap-4">
-            {[['50+', 'Hospitals'], ['10K+', 'Patients'], ['5', 'Roles']].map(([val, lbl]) => (
-              <div key={lbl} className="text-center">
-                <p className="text-white font-bold text-lg leading-tight">{val}</p>
-                <p className="text-green-300/50 text-[10px]">{lbl}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Right Panel */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
-        <div className="w-full max-w-[420px]">
-          {/* Mobile logo */}
-          <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center shadow-md">
+        {/* Content stack */}
+        <div className="relative z-10 flex flex-col justify-between h-full px-10 xl:px-16 py-10 xl:py-14">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-xl shadow-black/20">
               <HeartPulse className="w-5 h-5 text-white" />
             </div>
-            <p className="text-xl font-bold text-slate-900">DigiHealth CMS</p>
+            <div>
+              <p className="text-white font-bold text-lg leading-tight tracking-tight">DigiHealth</p>
+              <p className="text-emerald-200/70 text-[11px] font-medium">ডিজিটাল স্বাস্থ্য প্ল্যাটফর্ম</p>
+            </div>
+          </div>
+
+          {/* Hero */}
+          <div className="max-w-md py-10">
+            <p className="text-emerald-300/80 text-[11px] font-bold tracking-[0.2em] uppercase mb-4">
+              বাংলাদেশের শীর্ষ স্বাস্থ্য নেটওয়ার্ক
+            </p>
+            <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.1] tracking-tight mb-5">
+              স্বাস্থ্যসেবা এখন<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-100">
+                আপনার হাতের মুঠোয়
+              </span>
+            </h2>
+            <p className="text-emerald-50/70 text-[15px] leading-relaxed">
+              হাসপাতাল ব্যবস্থাপনা, রোগী রেকর্ড, ল্যাব ওয়ার্কফ্লো ও মাল্টি-রোল অ্যাক্সেস —
+              সবকিছু একই প্ল্যাটফর্মে, বাংলায়।
+            </p>
+          </div>
+
+          {/* Feature grid */}
+          <div className="grid grid-cols-2 gap-3 max-w-2xl">
+            {features.map(({ icon: Icon, title, text }, i) => (
+              <div
+                key={i}
+                className="group flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-sm hover:bg-white/[0.08] hover:border-white/20 transition-all duration-200"
+              >
+                <div className="w-9 h-9 rounded-lg bg-emerald-500/15 border border-emerald-400/25 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500/25 transition-colors">
+                  <Icon className="w-4 h-4 text-emerald-300" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-white font-semibold text-[13px] leading-tight">{title}</p>
+                  <p className="text-emerald-100/55 text-[11px] leading-snug mt-1">{text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Stats footer */}
+          <div className="flex items-center gap-6 pt-8">
+            {[
+              { v: '৫০+',     l: 'হাসপাতাল' },
+              { v: '১০ হাজার+', l: 'রোগী'      },
+              { v: '৫',        l: 'রোল'        },
+            ].map(({ v, l }) => (
+              <div key={l}>
+                <p className="text-white font-extrabold text-2xl leading-none tracking-tight">{v}</p>
+                <p className="text-emerald-200/60 text-[11px] mt-1.5">{l}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      {/* ── Right Panel ──────────────────────────────────────────────────── */}
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
+        <div className="w-full max-w-sm sm:max-w-[400px]">
+          {/* Mobile logo + tagline */}
+          <div className="lg:hidden flex flex-col items-center gap-3 mb-8">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-700 flex items-center justify-center shadow-md shadow-green-200">
+              <HeartPulse className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-center">
+              <p className="text-xl font-extrabold text-slate-900 tracking-tight">DigiHealth</p>
+              <p className="text-xs text-slate-500 mt-0.5">ডিজিটাল স্বাস্থ্য প্ল্যাটফর্ম</p>
+            </div>
           </div>
 
           <div className="mb-7">
-            <h1 className="text-2xl font-extrabold text-slate-900">Welcome back</h1>
-            <p className="text-slate-500 text-sm mt-1">Sign in to your account</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">আবার স্বাগতম</h1>
+            <p className="text-slate-500 text-sm mt-1.5">আপনার অ্যাকাউন্টে লগইন করুন</p>
           </div>
 
           <form onSubmit={handleSubmit((d) => { setError(''); loginMutation.mutate(d) })} noValidate className="space-y-4">
             <Input
-              label="Phone / Health ID"
-              placeholder="017XXXXXXXX or DH-190000000001"
-              hint="Enter your phone number or Health ID"
+              label="ফোন নম্বর / হেলথ আইডি"
+              placeholder="০১৭XXXXXXXX অথবা DH-190000000001"
+              hint="আপনার ফোন নম্বর বা হেলথ আইডি দিন"
               error={errors.identifier?.message}
+              autoComplete="username"
               {...register('identifier')}
             />
             <div className="relative">
               <Input
-                label="Password"
+                label="পাসওয়ার্ড"
                 type={showPass ? 'text' : 'password'}
-                placeholder="Enter your password"
+                placeholder="আপনার পাসওয়ার্ড দিন"
                 error={errors.password?.message}
+                autoComplete="current-password"
                 {...register('password')}
               />
               <button
                 type="button"
                 onClick={() => setShowPass(!showPass)}
-                className="absolute right-3 top-9 text-slate-400 hover:text-slate-600"
-                aria-label="Toggle password"
+                className="absolute right-3 top-9 text-slate-400 hover:text-slate-600 p-0.5"
+                aria-label="পাসওয়ার্ড দেখুন/লুকান"
+                tabIndex={-1}
               >
                 {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                  className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500 focus:ring-offset-0"
                   {...register('rememberMe')}
                 />
-                <span className="text-sm text-slate-600">Remember me</span>
+                <span className="text-sm text-slate-600">আমাকে মনে রাখুন</span>
               </label>
             </div>
 
@@ -194,46 +207,24 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" className="w-full" size="lg" loading={loginMutation.isPending}>
-              Sign In
+              লগইন করুন
               <ChevronRight className="w-4 h-4" />
             </Button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-4">
-            No account?{' '}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200" /></div>
+            <div className="relative flex justify-center"><span className="bg-slate-50 px-3 text-xs text-slate-400">অথবা</span></div>
+          </div>
+
+          <p className="text-center text-sm text-slate-600">
+            অ্যাকাউন্ট নেই?{' '}
             <Link href="/register" className="text-green-600 hover:text-green-700 font-semibold hover:underline">
-              Register
+              নিবন্ধন করুন
             </Link>
           </p>
-
-          {/* Demo login */}
-          <div className="mt-6 pt-5 border-t border-slate-200">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider text-center mb-1">
-              Demo Login
-            </p>
-            <p className="text-[10px] text-slate-400 text-center mb-3">
-              ✨ Multi-Role demo shows the portal switcher
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {demoRoles.map(({ role, label, color, icon }) => (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => demoMutation.mutate(role)}
-                  disabled={demoMutation.isPending}
-                  className={`flex flex-col items-center justify-center py-3 px-2 rounded-xl text-white text-[11px] font-semibold transition-all disabled:opacity-50 hover:scale-105 hover:shadow-md gap-1.5 ${color}`}
-                >
-                  {demoMutation.isPending
-                    ? <Loader2 className="w-4 h-4 animate-spin" />
-                    : <span className="text-lg leading-none">{icon}</span>
-                  }
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

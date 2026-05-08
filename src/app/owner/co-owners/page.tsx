@@ -147,7 +147,7 @@ export default function CoOwnersPage() {
           <Input label="ফোন নম্বর" error={errors.phone?.message} {...register('phone')} />
           <Input label="ইমেইল" type="email" error={errors.email?.message} {...register('email')} />
           <Input label="পাসওয়ার্ড" type="password" error={errors.password?.message} {...register('password')} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label="বয়স" type="number" error={errors.age?.message} {...register('age')} />
             <Select label="লিঙ্গ" error={errors.gender?.message} options={GENDER_OPTIONS} {...register('gender')} />
             <Select label="রক্তের গ্রুপ (ঐচ্ছিক)" error={errors.blood_group?.message} options={BLOOD_GROUP_OPTIONS} {...register('blood_group')} />

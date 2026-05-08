@@ -332,7 +332,7 @@ function AdmissionDetailModal({
           className="space-y-4"
         >
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">রোগীর তথ্য</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input label="পূর্ণ নাম" error={form.formState.errors.name?.message} {...form.register('name')} />
             <Input label="বয়স" type="number" {...form.register('age')} />
             <Select label="লিঙ্গ"
@@ -877,7 +877,7 @@ export default function AdmissionsPage() {
               <p className="text-[11px] text-amber-700/80">
                 ডিফল্ট পাসওয়ার্ড: <span className="font-mono font-bold">123456</span>
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input label="পূর্ণ নাম" error={form.formState.errors.name?.message} {...form.register('name')} />
                 <Input label="বয়স" type="number" {...form.register('age')} />
                 <Select label="লিঙ্গ"

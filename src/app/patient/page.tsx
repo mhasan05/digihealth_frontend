@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,6 +9,7 @@ import { useAuthStore } from '@/store/auth-store'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { StatusBadge } from '@/components/ui/badge'
@@ -22,7 +22,7 @@ import {
   TrendingUp, TrendingDown, Minus, Activity, Heart, Scale,
   Crown, ChevronDown, Phone, Upload, Download, FileText,
   AlertTriangle, Star, Eye, Share2, ShieldCheck, Users,
-  UserCheck, Microscope, Building2, ExternalLink,
+  UserCheck, Microscope, Building2,
 } from 'lucide-react'
 import type { HealthMetric, Role } from '@/types'
 
@@ -428,13 +428,115 @@ const portalLink: Partial<Record<Role, { href: string; label: string; cls: strin
   pathologist: { href: '/pathologist', label: 'Pathologist Portal', cls: 'text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100' },
 }
 
+// ── Edit Profile Modal ───────────────────────────────────────────────────────
+const profileSchema = z.object({
+  name:        z.string().min(2, 'নাম দিন'),
+  email:       z.string().email('সঠিক ইমেইল দিন').optional().or(z.literal('')),
+  age:         z.coerce.number({ message: 'বয়স দিন' }).int().min(0).max(150),
+  gender:      z.enum(['Male', 'Female', 'Other'], { message: 'লিঙ্গ নির্বাচন করুন' }),
+  blood_group: z.string().optional(),
+  address:     z.string().min(1, 'ঠিকানা দিন'),
+})
+type ProfileForm = z.output<typeof profileSchema>
+
+function EditProfileModal({
+  isOpen,
+  onClose,
+  patient,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  patient: {
+    name: string
+    age: number
+    gender: 'Male' | 'Female' | 'Other'
+    blood_group: string
+    address: string
+    phone?: string
+  }
+}) {
+  const queryClient = useQueryClient()
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<ProfileForm>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(profileSchema) as any,
+    defaultValues: {
+      name:        patient.name,
+      email:       '',
+      age:         patient.age,
+      gender:      patient.gender,
+      blood_group: patient.blood_group === 'Unknown' ? '' : patient.blood_group,
+      address:     patient.address,
+    },
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: (data: ProfileForm) =>
+      api.patient.updateMyProfile({
+        name:        data.name,
+        email:       data.email || undefined,
+        age:         data.age,
+        gender:      data.gender,
+        blood_group: data.blood_group || '',
+        address:     data.address,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['patient', PATIENT_ID] })
+      onClose()
+      reset()
+    },
+    onError: (err: Error) => setErrorMsg(err.message || 'সংরক্ষণ ব্যর্থ হয়েছে'),
+  })
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="প্রোফাইল সম্পাদনা" size="md">
+      <form onSubmit={handleSubmit(d => { setErrorMsg(null); saveMutation.mutate(d) })} className="space-y-4">
+        <Input label="পূর্ণ নাম" error={errors.name?.message} {...register('name')} />
+        <Input label="ইমেইল (ঐচ্ছিক)" type="email" error={errors.email?.message} {...register('email')} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Input label="বয়স" type="number" error={errors.age?.message} {...register('age')} />
+          <Select label="লিঙ্গ" error={errors.gender?.message}
+            options={[
+              { value: 'Male',   label: 'পুরুষ'    },
+              { value: 'Female', label: 'মহিলা'    },
+              { value: 'Other',  label: 'অন্যান্য' },
+            ]}
+            {...register('gender')}
+          />
+          <Select label="রক্তের গ্রুপ (ঐচ্ছিক)" error={errors.blood_group?.message}
+            options={[
+              { value: '', label: 'অজানা' },
+              ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
+            ]}
+            {...register('blood_group')}
+          />
+          <Input label="ঠিকানা" error={errors.address?.message} {...register('address')} />
+        </div>
+        {patient.phone && (
+          <p className="text-xs text-slate-400">ফোন: <span className="font-mono text-slate-600">{patient.phone}</span> · ফোন পরিবর্তন করতে অ্যাডমিনের সাথে যোগাযোগ করুন</p>
+        )}
+        {errorMsg && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">{errorMsg}</div>
+        )}
+        <div className="flex justify-end gap-3 pt-1">
+          <Button type="button" variant="ghost" onClick={() => { setErrorMsg(null); onClose() }}>বাতিল</Button>
+          <Button type="submit" loading={saveMutation.isPending}>সংরক্ষণ করুন</Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function PatientDashboard() {
   const { user }  = useAuthStore()
   const role      = (user?.roles[0] ?? 'patient') as Role
   const portal    = portalLink[role]
+  const queryClient = useQueryClient()
 
   const [activeTab, setActiveTab] = useState<TabId>('metrics')
+  const [editProfileOpen, setEditProfileOpen] = useState(false)
 
   const { data: patient, isLoading, error } = useQuery({
     queryKey: ['patient', PATIENT_ID],
@@ -473,13 +575,13 @@ export default function PatientDashboard() {
 
       {/* ── Profile Hero ─────────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-green-600 via-green-500 to-emerald-500" />
-        <div className="px-6 pb-6">
-          <div className="-mt-11 mb-4 flex items-end justify-between">
-            <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-              <User className="w-10 h-10 text-green-600" />
+        <div className="h-20 sm:h-24 bg-gradient-to-r from-green-600 via-green-500 to-emerald-500" />
+        <div className="px-4 sm:px-6 pb-5 sm:pb-6">
+          <div className="-mt-9 sm:-mt-11 mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-4 border-white shadow-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+              <User className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
             </div>
-            <div className="mb-1 flex items-center gap-2">
+            <div className="sm:mb-1 flex flex-wrap items-center gap-2">
               {portal && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-slate-100 text-slate-600 border-slate-200">
                   {role === 'owner' ? <Building2 className="w-3 h-3" /> : role === 'manager' ? <UserCheck className="w-3 h-3" /> : <Microscope className="w-3 h-3" />}
@@ -492,10 +594,13 @@ export default function PatientDashboard() {
                 {isPremium && <Crown className="w-3 h-3" />}
                 {isPremium ? 'প্রিমিয়াম' : 'ফ্রি'}
               </span>
+              <Button size="sm" variant="outline" onClick={() => setEditProfileOpen(true)}>
+                <Pencil className="w-3.5 h-3.5" />সম্পাদনা
+              </Button>
             </div>
           </div>
-          <h2 className="text-xl font-extrabold text-slate-900 leading-tight">{patient.name}</h2>
-          <p className="text-xs font-mono text-slate-400 mt-0.5 tracking-widest">{patient.health_id}</p>
+          <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight">{patient.name}</h2>
+          <p className="text-[11px] sm:text-xs font-mono text-slate-400 mt-0.5 tracking-widest">{patient.health_id}</p>
           {(() => {
             const hasAge     = typeof patient.age === 'number' && patient.age > 0
             const hasGender  = !!patient.gender && patient.gender !== 'Other'
@@ -567,17 +672,6 @@ export default function PatientDashboard() {
           ))}
         </div>
 
-        {/* Portal link — navigates to role dashboard */}
-        {portal && (
-          <Link href={portal.href}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${portal.cls}`}>
-            {role === 'owner'       ? <Building2   className="w-4 h-4" />
-           : role === 'manager'     ? <UserCheck   className="w-4 h-4" />
-           :                          <Microscope  className="w-4 h-4" />}
-            {portal.label}
-            <ExternalLink className="w-3.5 h-3.5 opacity-60" />
-          </Link>
-        )}
       </div>
 
       {/* ── Tab content ──────────────────────────────────────────────────── */}
@@ -602,6 +696,21 @@ export default function PatientDashboard() {
           </div>
         )}
       </div>
+
+      {editProfileOpen && (
+        <EditProfileModal
+          isOpen={editProfileOpen}
+          onClose={() => setEditProfileOpen(false)}
+          patient={{
+            name:        patient.name,
+            age:         patient.age ?? 0,
+            gender:      (patient.gender ?? 'Other') as 'Male' | 'Female' | 'Other',
+            blood_group: patient.blood_group ?? 'Unknown',
+            address:     patient.address ?? '',
+            phone,
+          }}
+        />
+      )}
     </div>
   )
 }
