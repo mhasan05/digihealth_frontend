@@ -20,7 +20,7 @@ const registerSchema = z.object({
   confirmPassword: z.string(),
   age:             z.coerce.number().min(1, 'বয়স দিন').max(150, 'সঠিক বয়স দিন'),
   gender:          z.enum(['Male', 'Female', 'Other'], { message: 'লিঙ্গ নির্বাচন করুন' }),
-  blood_group:     z.string().min(1, 'রক্তের গ্রুপ নির্বাচন করুন'),
+  blood_group:     z.string().optional(),
   address:         z.string().min(5, 'ঠিকানা কমপক্ষে ৫ অক্ষর হতে হবে'),
 }).refine((d) => d.password === d.confirmPassword, {
   message: 'পাসওয়ার্ড মিলছে না',
@@ -42,7 +42,7 @@ export default function RegisterPage() {
     mutationFn: (data: RegisterForm) =>
       api.auth.register({
         name: data.name, phone: data.phone, password: data.password,
-        age: data.age, gender: data.gender, blood_group: data.blood_group, address: data.address,
+        age: data.age, gender: data.gender, blood_group: data.blood_group ?? '', address: data.address,
       }),
     onSuccess: ({ user, token }) => { login(user, token); router.push('/patient') },
   })
@@ -79,10 +79,12 @@ export default function RegisterPage() {
                 {...register('gender')}
               />
               <Select
-                label="রক্তের গ্রুপ"
+                label="রক্তের গ্রুপ (ঐচ্ছিক)"
                 error={errors.blood_group?.message}
-                placeholder="রক্তের গ্রুপ নির্বাচন করুন"
-                options={['A+','A-','B+','B-','AB+','AB-','O+','O-'].map((v) => ({ value: v, label: v }))}
+                options={[
+                  { value: '', label: 'অজানা' },
+                  ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map((v) => ({ value: v, label: v })),
+                ]}
                 {...register('blood_group')}
               />
               <div className="sm:col-span-2">

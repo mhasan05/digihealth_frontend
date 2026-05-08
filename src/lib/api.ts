@@ -65,7 +65,16 @@ export const api = {
     getHospitals: () =>
       get<Hospital[]>('/api/admin/hospitals/'),
 
-    createHospital: (data: Omit<Hospital, 'id' | 'created_at' | 'updated_at'> & { owner_name: string; owner_phone: string; owner_email: string; owner_password: string }) =>
+    createHospital: (data: Omit<Hospital, 'id' | 'created_at' | 'updated_at'> & {
+      owner_name: string
+      owner_phone: string
+      owner_email: string
+      owner_password: string
+      owner_age: number
+      owner_gender: 'Male' | 'Female' | 'Other'
+      owner_blood_group: string
+      owner_address: string
+    }) =>
       post<Hospital>('/api/admin/hospitals/', data),
 
     updateHospital: (id: string, data: Partial<Hospital>) =>
@@ -189,11 +198,38 @@ export const api = {
     cancelAppointment: (id: string) =>
       post<Appointment>(`/api/manager/appointments/${id}/cancel/`),
 
-    admitPatient: (appointmentId: string, data: { bed_id: string; nurse_id: string }) =>
+    admitPatient: (appointmentId: string, data: { bed_id: string; nurse_id?: string }) =>
       post<Admission>(`/api/manager/appointments/${appointmentId}/admit/`, data),
 
     getAdmissions: () =>
       get<Admission[]>('/api/manager/admissions/'),
+
+    directAdmit: (data: {
+      phone: string
+      bed_id: string
+      nurse_id?: string
+      doctor_id?: string
+      reason?: string
+      name?: string
+      age?: number
+      gender?: 'Male' | 'Female' | 'Other'
+      blood_group?: string
+    }) =>
+      post<Admission & { created_new_user?: boolean }>('/api/manager/admissions/', data),
+
+    updateAdmission: (id: string, data: {
+      bed_id?: string
+      nurse_id?: string
+      doctor_id?: string
+      reason?: string
+    }) =>
+      put<Admission>(`/api/manager/admissions/${id}/`, data),
+
+    dischargeAdmission: (id: string) =>
+      del<Admission>(`/api/manager/admissions/${id}/`),
+
+    updatePatient: (id: string, data: Partial<Pick<Patient, 'name' | 'age' | 'gender' | 'blood_group' | 'address'>>) =>
+      put<Patient>(`/api/manager/patients/${id}/`, data),
 
     getAvailableBeds: (_hospitalId: string) =>
       get<Bed[]>('/api/manager/available-beds/'),
@@ -204,7 +240,7 @@ export const api = {
     getLabOrders: (_hospitalId: string) =>
       get<LabOrder[]>('/api/manager/lab-orders/'),
 
-    createLabOrder: (_hospitalId: string, data: Omit<LabOrder, 'id' | 'hospital_id' | 'status' | 'created_at'> & { ordered_by_doctor_id?: string }) =>
+    createLabOrder: (_hospitalId: string, data: Omit<LabOrder, 'id' | 'hospital_id' | 'status' | 'created_at'> & { ordered_by_doctor_id?: string; assigned_pathologist_id?: string }) =>
       post<LabOrder>('/api/manager/lab-orders/', data),
 
     assignPathologist: (orderId: string, pathologistId: string, _pathologistName: string) =>
@@ -218,6 +254,12 @@ export const api = {
 
     getDoctors: (_hospitalId: string) =>
       get<Doctor[]>('/api/manager/doctors/'),
+
+    getPathologists: (_hospitalId: string) =>
+      get<(Pathologist & { active_test_count: number })[]>('/api/manager/pathologists/'),
+
+    getLabTests: (_hospitalId: string) =>
+      get<LabTest[]>('/api/manager/lab-tests/'),
 
     getPatients: () =>
       get<Patient[]>('/api/manager/patients/'),

@@ -436,9 +436,10 @@ export default function PatientDashboard() {
 
   const [activeTab, setActiveTab] = useState<TabId>('metrics')
 
-  const { data: patient, isLoading } = useQuery({
+  const { data: patient, isLoading, error } = useQuery({
     queryKey: ['patient', PATIENT_ID],
     queryFn:  () => api.patient.getDashboard(PATIENT_ID),
+    retry: false,
   })
 
   if (isLoading) return (
@@ -453,7 +454,15 @@ export default function PatientDashboard() {
       </div>
     </div>
   )
-  if (!patient)  return <p className="text-center text-slate-500 py-12">রোগীর তথ্য পাওয়া যায়নি</p>
+  if (!patient) return (
+    <div className="bg-white rounded-2xl border border-amber-200 p-8 text-center">
+      <User className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+      <h3 className="text-lg font-bold text-slate-900 mb-1">রোগীর তথ্য পাওয়া যায়নি</h3>
+      <p className="text-sm text-slate-500">
+        {error instanceof Error ? error.message : 'আপনার অ্যাকাউন্টে রোগী প্রোফাইল নেই। অ্যাডমিনের সাথে যোগাযোগ করুন।'}
+      </p>
+    </div>
+  )
 
   const genderLabel = patient.gender === 'Male' ? 'পুরুষ' : patient.gender === 'Female' ? 'মহিলা' : 'অন্যান্য'
   const isPremium   = patient.subscription_tier === 'Premium'
@@ -487,39 +496,61 @@ export default function PatientDashboard() {
           </div>
           <h2 className="text-xl font-extrabold text-slate-900 leading-tight">{patient.name}</h2>
           <p className="text-xs font-mono text-slate-400 mt-0.5 tracking-widest">{patient.health_id}</p>
-          <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">বয়স / লিঙ্গ</p>
-                <p className="text-sm font-bold text-slate-800 mt-0.5">{patient.age} বছর</p>
-                <p className="text-xs text-slate-500">{genderLabel}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 p-3 bg-red-50 rounded-xl border border-red-100">
-              <Droplets className="w-4 h-4 text-red-400 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">রক্তের গ্রুপ</p>
-                <p className="text-2xl font-extrabold text-red-600 leading-tight">{patient.blood_group}</p>
-              </div>
-            </div>
-            {phone && (
-              <div className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <div>
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">ফোন</p>
-                  <p className="text-sm font-bold text-slate-800 mt-0.5">{phone}</p>
+          {(() => {
+            const hasAge     = typeof patient.age === 'number' && patient.age > 0
+            const hasGender  = !!patient.gender && patient.gender !== 'Other'
+            const hasBlood   = !!patient.blood_group && patient.blood_group !== 'Unknown'
+            const hasAddress = !!patient.address?.trim()
+            const tiles: React.ReactNode[] = []
+
+            if (hasAge || hasGender) {
+              tiles.push(
+                <div key="age" className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">বয়স / লিঙ্গ</p>
+                    {hasAge   && <p className="text-sm font-bold text-slate-800 mt-0.5">{patient.age} বছর</p>}
+                    {hasGender && <p className="text-xs text-slate-500">{genderLabel}</p>}
+                  </div>
                 </div>
-              </div>
-            )}
-            <div className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100 col-span-2 sm:col-span-1">
-              <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">ঠিকানা</p>
-                <p className="text-xs font-semibold text-slate-700 mt-0.5 leading-relaxed">{patient.address}</p>
-              </div>
-            </div>
-          </div>
+              )
+            }
+            if (hasBlood) {
+              tiles.push(
+                <div key="bg" className="flex items-center gap-2.5 p-3 bg-red-50 rounded-xl border border-red-100">
+                  <Droplets className="w-4 h-4 text-red-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">রক্তের গ্রুপ</p>
+                    <p className="text-2xl font-extrabold text-red-600 leading-tight">{patient.blood_group}</p>
+                  </div>
+                </div>
+              )
+            }
+            if (phone) {
+              tiles.push(
+                <div key="ph" className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">ফোন</p>
+                    <p className="text-sm font-bold text-slate-800 mt-0.5">{phone}</p>
+                  </div>
+                </div>
+              )
+            }
+            if (hasAddress) {
+              tiles.push(
+                <div key="ad" className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100 col-span-2 sm:col-span-1">
+                  <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">ঠিকানা</p>
+                    <p className="text-xs font-semibold text-slate-700 mt-0.5 leading-relaxed">{patient.address}</p>
+                  </div>
+                </div>
+              )
+            }
+            if (tiles.length === 0) return null
+            return <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">{tiles}</div>
+          })()}
         </div>
       </div>
 

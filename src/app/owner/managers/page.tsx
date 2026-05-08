@@ -20,14 +20,28 @@ import { Plus, Pencil, Trash2, KeyRound } from 'lucide-react'
 import type { Manager } from '@/types'
 
 const managerSchema = z.object({
-  name:     z.string().min(2, 'নাম দিন'),
-  phone:    z.string().min(11, 'ফোন নম্বর দিন'),
-  email:    z.string().email('সঠিক ইমেইল দিন'),
-  password: z.string().optional(),
-  status:   z.enum(['Active', 'Inactive', 'On-leave']),
+  name:        z.string().min(2, 'নাম দিন'),
+  phone:       z.string().min(11, 'ফোন নম্বর দিন'),
+  email:       z.string().email('সঠিক ইমেইল দিন'),
+  password:    z.string().optional(),
+  status:      z.enum(['Active', 'Inactive', 'On-leave']),
+  age:         z.coerce.number({ message: 'বয়স দিন' }).int().min(0).max(150),
+  gender:      z.enum(['Male', 'Female', 'Other'], { message: 'লিঙ্গ নির্বাচন করুন' }),
+  blood_group: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional().or(z.literal('')),
+  address:     z.string().min(1, 'ঠিকানা দিন'),
 })
 
 type ManagerForm = z.infer<typeof managerSchema>
+
+const GENDER_OPTIONS = [
+  { value: 'Male',   label: 'পুরুষ'    },
+  { value: 'Female', label: 'মহিলা'    },
+  { value: 'Other',  label: 'অন্যান্য' },
+]
+const BLOOD_GROUP_OPTIONS = [
+  { value: '', label: 'অজানা' },
+  ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
+]
 
 const statusVariant: Record<string, 'green' | 'gray' | 'amber'> = {
   Active: 'green', Inactive: 'gray', 'On-leave': 'amber',
@@ -53,7 +67,8 @@ export default function ManagersPage() {
     register, handleSubmit, reset, setError,
     formState: { errors },
   } = useForm<ManagerForm>({
-    resolver: zodResolver(managerSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(managerSchema) as any,
     defaultValues: { status: 'Active' },
   })
 
@@ -97,7 +112,13 @@ export default function ManagersPage() {
   }
 
   const handleOpenEdit = (m: Manager) => {
-    reset({ name: m.name, phone: m.phone, email: m.email, status: m.status, password: '' })
+    reset({
+      name: m.name, phone: m.phone, email: m.email, status: m.status, password: '',
+      age:         m.age ?? 0,
+      gender:      (m.gender as 'Male' | 'Female' | 'Other') ?? 'Male',
+      blood_group: (m.blood_group as 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-') ?? 'A+',
+      address:     m.address ?? '',
+    })
     setEditManager(m)
     setModalOpen(true)
   }
@@ -223,6 +244,13 @@ export default function ManagersPage() {
           <Input label="নাম"        error={errors.name?.message}  {...register('name')} />
           <Input label="ফোন নম্বর"  error={errors.phone?.message} {...register('phone')} />
           <Input label="ইমেইল" type="email" error={errors.email?.message} {...register('email')} />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="বয়স" type="number" error={errors.age?.message} {...register('age')} />
+            <Select label="লিঙ্গ" error={errors.gender?.message} options={GENDER_OPTIONS} {...register('gender')} />
+            <Select label="রক্তের গ্রুপ (ঐচ্ছিক)" error={errors.blood_group?.message} options={BLOOD_GROUP_OPTIONS} {...register('blood_group')} />
+            <Input label="ঠিকানা" error={errors.address?.message} {...register('address')} />
+          </div>
 
           <div className="rounded-xl bg-green-50 border border-green-200 p-3.5 space-y-3">
             <div className="flex items-center gap-2">

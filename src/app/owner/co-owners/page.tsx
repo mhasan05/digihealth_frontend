@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/auth-store'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Badge } from '@/components/ui/badge'
@@ -18,13 +19,27 @@ import { formatDate } from '@/lib/utils'
 import { Plus, Trash2 } from 'lucide-react'
 
 const coOwnerSchema = z.object({
-  name: z.string().min(2, 'নাম দিন'),
-  phone: z.string().min(11, 'ফোন নম্বর দিন'),
-  email: z.string().email('সঠিক ইমেইল দিন'),
-  password: z.string().min(6, 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষর'),
+  name:        z.string().min(2, 'নাম দিন'),
+  phone:       z.string().min(11, 'ফোন নম্বর দিন'),
+  email:       z.string().email('সঠিক ইমেইল দিন'),
+  password:    z.string().min(6, 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষর'),
+  age:         z.coerce.number({ message: 'বয়স দিন' }).int().min(0).max(150),
+  gender:      z.enum(['Male', 'Female', 'Other'], { message: 'লিঙ্গ নির্বাচন করুন' }),
+  blood_group: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional().or(z.literal('')),
+  address:     z.string().min(1, 'ঠিকানা দিন'),
 })
 
 type CoOwnerForm = z.infer<typeof coOwnerSchema>
+
+const GENDER_OPTIONS = [
+  { value: 'Male',   label: 'পুরুষ'    },
+  { value: 'Female', label: 'মহিলা'    },
+  { value: 'Other',  label: 'অন্যান্য' },
+]
+const BLOOD_GROUP_OPTIONS = [
+  { value: '', label: 'অজানা' },
+  ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
+]
 
 export default function CoOwnersPage() {
   const { user } = useAuthStore()
@@ -39,7 +54,8 @@ export default function CoOwnersPage() {
   })
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<CoOwnerForm>({
-    resolver: zodResolver(coOwnerSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(coOwnerSchema) as any,
   })
 
   const addMutation = useMutation({
@@ -131,6 +147,12 @@ export default function CoOwnersPage() {
           <Input label="ফোন নম্বর" error={errors.phone?.message} {...register('phone')} />
           <Input label="ইমেইল" type="email" error={errors.email?.message} {...register('email')} />
           <Input label="পাসওয়ার্ড" type="password" error={errors.password?.message} {...register('password')} />
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="বয়স" type="number" error={errors.age?.message} {...register('age')} />
+            <Select label="লিঙ্গ" error={errors.gender?.message} options={GENDER_OPTIONS} {...register('gender')} />
+            <Select label="রক্তের গ্রুপ (ঐচ্ছিক)" error={errors.blood_group?.message} options={BLOOD_GROUP_OPTIONS} {...register('blood_group')} />
+            <Input label="ঠিকানা" error={errors.address?.message} {...register('address')} />
+          </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => { setModalOpen(false); reset() }}>বাতিল</Button>
             <Button type="submit" loading={addMutation.isPending}>যোগ করুন</Button>

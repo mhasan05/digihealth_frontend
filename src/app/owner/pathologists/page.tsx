@@ -20,15 +20,29 @@ import { Plus, Pencil, Trash2, KeyRound } from 'lucide-react'
 import type { Pathologist } from '@/types'
 
 const pathologistSchema = z.object({
-  name: z.string().min(2, 'নাম দিন'),
-  phone: z.string().min(11, 'ফোন নম্বর দিন'),
-  email: z.string().email('সঠিক ইমেইল দিন'),
-  password: z.string().optional(),
+  name:           z.string().min(2, 'নাম দিন'),
+  phone:          z.string().min(11, 'ফোন নম্বর দিন'),
+  email:          z.string().email('সঠিক ইমেইল দিন'),
+  password:       z.string().optional(),
   specialization: z.string().min(2, 'বিশেষজ্ঞতা দিন'),
-  status: z.enum(['Active', 'Inactive']),
+  status:         z.enum(['Active', 'Inactive']),
+  age:            z.coerce.number({ message: 'বয়স দিন' }).int().min(0).max(150),
+  gender:         z.enum(['Male', 'Female', 'Other'], { message: 'লিঙ্গ নির্বাচন করুন' }),
+  blood_group:    z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional().or(z.literal('')),
+  address:        z.string().min(1, 'ঠিকানা দিন'),
 })
 
 type PathologistForm = z.infer<typeof pathologistSchema>
+
+const GENDER_OPTIONS = [
+  { value: 'Male',   label: 'পুরুষ'    },
+  { value: 'Female', label: 'মহিলা'    },
+  { value: 'Other',  label: 'অন্যান্য' },
+]
+const BLOOD_GROUP_OPTIONS = [
+  { value: '', label: 'অজানা' },
+  ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
+]
 
 export default function PathologistsPage() {
   const { user } = useAuthStore()
@@ -44,7 +58,8 @@ export default function PathologistsPage() {
   })
 
   const { register, handleSubmit, reset, setError, formState: { errors } } = useForm<PathologistForm>({
-    resolver: zodResolver(pathologistSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(pathologistSchema) as any,
     defaultValues: { status: 'Active' },
   })
 
@@ -82,7 +97,14 @@ export default function PathologistsPage() {
   }
 
   const handleOpenEdit = (p: Pathologist) => {
-    reset({ name: p.name, phone: p.phone, email: p.email, specialization: p.specialization, status: p.status, password: '' })
+    reset({
+      name: p.name, phone: p.phone, email: p.email,
+      specialization: p.specialization, status: p.status, password: '',
+      age:         p.age ?? 0,
+      gender:      (p.gender as 'Male' | 'Female' | 'Other') ?? 'Male',
+      blood_group: (p.blood_group as 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-') ?? 'A+',
+      address:     p.address ?? '',
+    })
     setEditPathologist(p)
     setModalOpen(true)
   }
@@ -200,6 +222,13 @@ export default function PathologistsPage() {
           <Input label="নাম" error={errors.name?.message} {...register('name')} />
           <Input label="ফোন নম্বর" error={errors.phone?.message} {...register('phone')} />
           <Input label="ইমেইল" type="email" error={errors.email?.message} {...register('email')} />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="বয়স" type="number" error={errors.age?.message} {...register('age')} />
+            <Select label="লিঙ্গ" error={errors.gender?.message} options={GENDER_OPTIONS} {...register('gender')} />
+            <Select label="রক্তের গ্রুপ (ঐচ্ছিক)" error={errors.blood_group?.message} options={BLOOD_GROUP_OPTIONS} {...register('blood_group')} />
+            <Input label="ঠিকানা" error={errors.address?.message} {...register('address')} />
+          </div>
 
           <div className="rounded-xl bg-green-50 border border-green-200 p-3.5 space-y-3">
             <div className="flex items-center gap-2">

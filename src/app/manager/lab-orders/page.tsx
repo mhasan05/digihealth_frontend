@@ -14,9 +14,11 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { StatusBadge, Badge } from '@/components/ui/badge'
 import { Table, TableHead, TableBody, TableRow, TableCell } from '@/components/ui/table'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
+import { DoctorSearch } from '@/components/shared/doctor-search'
+import { PathologistSearch } from '@/components/shared/pathologist-search'
 import { formatDate } from '@/lib/utils'
-import { Plus, UserCheck, X, Eye, Search, User, Stethoscope } from 'lucide-react'
-import type { LabOrder, LabResult, Patient, Doctor } from '@/types'
+import { Plus, UserCheck, X, Eye, Search, User } from 'lucide-react'
+import type { LabOrder, LabResult, Patient, Doctor, Pathologist } from '@/types'
 
 type Tab = 'all' | 'Pending' | 'Assigned' | 'Completed' | 'Cancelled'
 
@@ -29,9 +31,10 @@ const tabs: { id: Tab; label: string }[] = [
 ]
 
 const newOrderSchema = z.object({
-  patient_id: z.string().min(1, 'রোগী নির্বাচন করুন'),
-  test_id: z.string().min(1, 'পরীক্ষা নির্বাচন করুন'),
-  doctor_id: z.string().min(1, 'ডাক্তার নির্বাচন করুন'),
+  patient_id:     z.string().min(1, 'রোগী নির্বাচন করুন'),
+  test_id:        z.string().min(1, 'পরীক্ষা নির্বাচন করুন'),
+  doctor_id:      z.string().optional(),
+  pathologist_id: z.string().optional(),
 })
 
 type NewOrderForm = z.infer<typeof newOrderSchema>
@@ -134,98 +137,6 @@ function PatientSearch({
   )
 }
 
-// ── Doctor Search ─────────────────────────────────────────────────────────────
-function DoctorSearch({
-  doctors, selected, onSelect, onClear, error,
-}: {
-  doctors: Doctor[]
-  selected: Doctor | null
-  onSelect: (d: Doctor) => void
-  onClear: () => void
-  error?: string
-}) {
-  const [query, setQuery] = useState('')
-  const [open, setOpen]   = useState(false)
-  const wrapRef           = useRef<HTMLDivElement>(null)
-
-  const results = query.length >= 1
-    ? doctors.filter(d =>
-        d.name.includes(query) ||
-        d.specialization.toLowerCase().includes(query.toLowerCase()) ||
-        d.specialization.includes(query)
-      ).slice(0, 8)
-    : doctors.slice(0, 8)
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  if (selected) {
-    return (
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">ডাক্তার</label>
-        <div className="flex items-center justify-between px-4 py-3 bg-violet-50 border border-violet-200 rounded-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
-              <Stethoscope className="w-4 h-4 text-violet-600" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{selected.name}</p>
-              <p className="text-xs text-slate-500">{selected.specialization}</p>
-            </div>
-          </div>
-          <button type="button" onClick={onClear}
-            className="text-xs font-medium text-violet-600 hover:text-violet-800 transition-colors">
-            পরিবর্তন
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div ref={wrapRef}>
-      <label className="block text-sm font-medium text-slate-700 mb-1.5">ডাক্তার খুঁজুন</label>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-        <input
-          type="text"
-          value={query}
-          onChange={e => { setQuery(e.target.value); setOpen(true) }}
-          onFocus={() => setOpen(true)}
-          placeholder="নাম বা বিশেষজ্ঞতা দিয়ে খুঁজুন..."
-          className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all"
-        />
-        {open && results.length > 0 && (
-          <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden max-h-52 overflow-y-auto">
-            {results.map(d => (
-              <button key={d.id} type="button"
-                onMouseDown={() => { onSelect(d); setQuery(''); setOpen(false) }}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-violet-50 text-left transition-colors border-b border-slate-50 last:border-0">
-                <div className="w-7 h-7 rounded-full bg-violet-50 flex items-center justify-center flex-shrink-0">
-                  <Stethoscope className="w-3.5 h-3.5 text-violet-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">{d.name}</p>
-                  <p className="text-xs text-slate-400">{d.specialization}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-        {open && query.length >= 2 && results.length === 0 && (
-          <p className="mt-1.5 text-xs text-slate-400 pl-1">কোনো ডাক্তার পাওয়া যায়নি</p>
-        )}
-      </div>
-      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-    </div>
-  )
-}
-
 export default function LabOrdersPage() {
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
@@ -237,6 +148,8 @@ export default function LabOrdersPage() {
   const [viewResult,       setViewResult]       = useState<LabResult | null>(null)
   const [selectedPatient,  setSelectedPatient]  = useState<Patient | null>(null)
   const [selectedDoctor,   setSelectedDoctor]   = useState<Doctor | null>(null)
+  const [selectedPathologist, setSelectedPathologist] = useState<(Pathologist & { active_test_count?: number }) | null>(null)
+  const [assignSelected, setAssignSelected] = useState<(Pathologist & { active_test_count?: number }) | null>(null)
 
   const { data: labOrders = [], isLoading } = useQuery({
     queryKey: ['lab-orders', hospitalId],
@@ -254,13 +167,13 @@ export default function LabOrdersPage() {
   })
 
   const { data: labTests = [] } = useQuery({
-    queryKey: ['lab-tests', hospitalId],
-    queryFn: () => api.owner.getLabTests(hospitalId),
+    queryKey: ['manager-lab-tests', hospitalId],
+    queryFn: () => api.manager.getLabTests(hospitalId),
   })
 
   const { data: pathologists = [] } = useQuery({
-    queryKey: ['pathologists', hospitalId],
-    queryFn: () => api.owner.getPathologists(hospitalId),
+    queryKey: ['manager-pathologists', hospitalId],
+    queryFn: () => api.manager.getPathologists(hospitalId),
   })
 
   const newOrderForm = useForm<NewOrderForm>({ resolver: zodResolver(newOrderSchema) })
@@ -270,18 +183,20 @@ export default function LabOrdersPage() {
     mutationFn: (data: NewOrderForm) => {
       const patient = patients.find(p => p.id === data.patient_id)!
       const test = labTests.find(t => t.id === data.test_id)!
-      const doctor = doctors.find(d => d.id === data.doctor_id)!
+      const doctor = data.doctor_id ? doctors.find(d => d.id === data.doctor_id) : null
       return api.manager.createLabOrder(hospitalId, {
         patient_id: data.patient_id,
         patient_name: patient.name,
         test_id: data.test_id,
         test_name: test.name,
-        ordered_by_doctor_name: doctor.name,
-        ordered_by_doctor_id: data.doctor_id,
+        ordered_by_doctor_name: doctor?.name ?? '',
+        ...(doctor ? { ordered_by_doctor_id: doctor.id } : {}),
+        ...(data.pathologist_id ? { assigned_pathologist_id: data.pathologist_id } : {}),
       })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lab-orders', hospitalId] })
+      queryClient.invalidateQueries({ queryKey: ['manager-pathologists', hospitalId] })
       queryClient.invalidateQueries({ queryKey: ['manager-dashboard', hospitalId] })
       closeCreateModal()
     },
@@ -294,7 +209,9 @@ export default function LabOrdersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lab-orders', hospitalId] })
+      queryClient.invalidateQueries({ queryKey: ['manager-pathologists', hospitalId] })
       setAssignOrder(null)
+      setAssignSelected(null)
       assignForm.reset()
     },
   })
@@ -311,6 +228,7 @@ export default function LabOrdersPage() {
     setCreateOpen(false)
     setSelectedPatient(null)
     setSelectedDoctor(null)
+    setSelectedPathologist(null)
     newOrderForm.reset()
   }
 
@@ -398,7 +316,7 @@ export default function LabOrdersPage() {
                     {lo.status === 'Pending' && (
                       <>
                         <button
-                          onClick={() => { assignForm.reset(); setAssignOrder(lo) }}
+                          onClick={() => { assignForm.reset(); setAssignSelected(null); setAssignOrder(lo) }}
                           className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
                           title="প্যাথলজিস্ট নির্ধারণ করুন"
                         >
@@ -485,8 +403,8 @@ export default function LabOrdersPage() {
           <Select
             label="পরীক্ষা"
             error={newOrderForm.formState.errors.test_id?.message}
-            options={labTests.filter(t => t.available).map(t => ({ value: t.id, label: t.name }))}
-            placeholder="পরীক্ষা নির্বাচন করুন"
+            options={labTests.filter(t => t.available).map(t => ({ value: t.id, label: `${t.name}${t.price ? ` — ৳${t.price}` : ''}` }))}
+            placeholder={labTests.length === 0 ? 'কোনো পরীক্ষা নেই — Owner থেকে যোগ করুন' : 'পরীক্ষা নির্বাচন করুন'}
             {...newOrderForm.register('test_id')}
           />
           <DoctorSearch
@@ -495,6 +413,14 @@ export default function LabOrdersPage() {
             onSelect={handleDoctorSelect}
             onClear={() => { setSelectedDoctor(null); newOrderForm.setValue('doctor_id', '') }}
             error={newOrderForm.formState.errors.doctor_id?.message}
+            optional
+          />
+          <PathologistSearch
+            pathologists={pathologists}
+            selected={selectedPathologist}
+            onSelect={(p) => { setSelectedPathologist(p); newOrderForm.setValue('pathologist_id', p.id) }}
+            onClear={() => { setSelectedPathologist(null); newOrderForm.setValue('pathologist_id', '') }}
+            optional
           />
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={closeCreateModal}>বাতিল</Button>
@@ -506,7 +432,7 @@ export default function LabOrdersPage() {
       {/* Assign Pathologist Modal */}
       <Modal
         isOpen={!!assignOrder}
-        onClose={() => { setAssignOrder(null); assignForm.reset() }}
+        onClose={() => { setAssignOrder(null); setAssignSelected(null); assignForm.reset() }}
         title="প্যাথলজিস্ট নির্ধারণ"
         size="sm"
       >
@@ -517,15 +443,15 @@ export default function LabOrdersPage() {
               <p><span className="font-medium">পরীক্ষা:</span> {assignOrder.test_name}</p>
             </div>
             <form onSubmit={assignForm.handleSubmit((d) => assignMutation.mutate(d))} className="space-y-4">
-              <Select
-                label="প্যাথলজিস্ট নির্বাচন করুন"
+              <PathologistSearch
+                pathologists={pathologists}
+                selected={assignSelected}
+                onSelect={(p) => { setAssignSelected(p); assignForm.setValue('pathologist_id', p.id) }}
+                onClear={() => { setAssignSelected(null); assignForm.setValue('pathologist_id', '') }}
                 error={assignForm.formState.errors.pathologist_id?.message}
-                options={pathologists.filter(p => p.status === 'Active').map(p => ({ value: p.id, label: `${p.name} — ${p.specialization}` }))}
-                placeholder="প্যাথলজিস্ট নির্বাচন করুন"
-                {...assignForm.register('pathologist_id')}
               />
               <div className="flex justify-end gap-3 pt-2">
-                <Button type="button" variant="outline" onClick={() => { setAssignOrder(null); assignForm.reset() }}>বাতিল</Button>
+                <Button type="button" variant="outline" onClick={() => { setAssignOrder(null); setAssignSelected(null); assignForm.reset() }}>বাতিল</Button>
                 <Button type="submit" loading={assignMutation.isPending}>নির্ধারণ করুন</Button>
               </div>
             </form>
@@ -571,6 +497,9 @@ export default function LabOrdersPage() {
         onConfirm={() => cancelId && cancelMutation.mutate(cancelId)}
         title="অর্ডার বাতিল করুন"
         message="আপনি কি এই ল্যাব অর্ডারটি বাতিল করতে চান?"
+        tone="warning"
+        confirmLabel="হ্যাঁ, বাতিল করুন"
+        cancelLabel="না"
         isLoading={cancelMutation.isPending}
       />
     </div>

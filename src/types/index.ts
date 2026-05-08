@@ -53,7 +53,17 @@ export interface Hospital {
   updated_at: string
 }
 
-export interface Owner {
+export type Gender = 'Male' | 'Female' | 'Other'
+export type BloodGroup = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-'
+
+export interface Demographics {
+  age?: number
+  gender?: Gender
+  blood_group?: BloodGroup | string
+  address?: string
+}
+
+export interface Owner extends Demographics {
   id: string
   hospital_id: string
   name: string
@@ -64,7 +74,7 @@ export interface Owner {
   created_at: string
 }
 
-export interface Manager {
+export interface Manager extends Demographics {
   id: string
   hospital_id: string
   name: string
@@ -75,7 +85,7 @@ export interface Manager {
   created_at: string
 }
 
-export interface Pathologist {
+export interface Pathologist extends Demographics {
   id: string
   hospital_id: string
   name: string
@@ -178,7 +188,7 @@ export interface Appointment {
   hospital_id: string
   patient_id: string
   patient_name: string
-  doctor_id: string
+  doctor_id: string | null
   doctor_name: string
   date: string
   time: string
@@ -191,11 +201,20 @@ export interface Appointment {
 export interface Admission {
   id: string
   appointment_id: string
+  patient_id: string
   patient_name: string
+  patient_phone?: string
+  patient_age?: number
+  patient_gender?: 'Male' | 'Female' | 'Other'
+  blood_group?: string
+  address?: string
+  reason?: string
+  doctor_id?: string | null
+  doctor_name?: string
   bed_id: string
   bed_number: string
   ward: string
-  nurse_id: string
+  nurse_id: string | null
   nurse_name: string
   admitted_at: string
   discharged_at?: string

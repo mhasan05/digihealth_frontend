@@ -788,6 +788,7 @@ export const mockAdmissions: Admission[] = [
   {
     id: 'adm1',
     appointment_id: 'apt6',
+    patient_id: 'pt6',
     patient_name: 'তানজিলা আক্তার',
     bed_id: 'b2',
     bed_number: 'A-102',
@@ -800,6 +801,7 @@ export const mockAdmissions: Admission[] = [
   {
     id: 'adm2',
     appointment_id: 'apt1',
+    patient_id: 'pt1',
     patient_name: 'মোঃ আরিফুল ইসলাম',
     bed_id: 'b5',
     bed_number: 'C-302',
@@ -812,6 +814,7 @@ export const mockAdmissions: Admission[] = [
   {
     id: 'adm3',
     appointment_id: 'apt3',
+    patient_id: 'pt3',
     patient_name: 'রাশেদ খান',
     bed_id: 'b8',
     bed_number: 'E-501',

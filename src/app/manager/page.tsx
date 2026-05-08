@@ -73,13 +73,24 @@ export default function ManagerDashboard() {
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['manager-dashboard', hospitalId],
     queryFn: () => api.manager.getDashboard(hospitalId),
+    retry: false,
   })
 
   if (isLoading) return <SkeletonDashboard />
-  if (!data) return null
+  if (error || !data) {
+    return (
+      <div className="bg-white rounded-2xl border border-amber-200 p-8 text-center">
+        <ClipboardList className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+        <h3 className="text-lg font-bold text-slate-900 mb-1">ম্যানেজার প্রোফাইল পাওয়া যায়নি</h3>
+        <p className="text-sm text-slate-500">
+          {error instanceof Error ? error.message : 'আপনার অ্যাকাউন্টে ম্যানেজার প্রোফাইল নেই। অ্যাডমিনের সাথে যোগাযোগ করুন।'}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

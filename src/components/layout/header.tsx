@@ -77,9 +77,15 @@ export function Header({ title, onMenuClick }: HeaderProps) {
   }, [])
 
   const handleLogout = async () => {
-    await api.auth.logout()
+    setProfileOpen(false)
+    try {
+      await api.auth.logout()
+    } catch {
+      // Backend logout is best-effort — JWT is stateless, so a stale/expired
+      // token returning 401 must not block the client-side cleanup below.
+    }
     logout()
-    router.push('/login')
+    router.replace('/login')
   }
 
   const handleSwitchPortal = (portal: Portal) => {

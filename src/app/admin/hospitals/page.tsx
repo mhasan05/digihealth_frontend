@@ -27,13 +27,27 @@ const hospitalSchema = z.object({
   email:          z.string().email('সঠিক ইমেইল দিন'),
   beds:           z.coerce.number().min(0, 'বেড সংখ্যা দিন'),
   established:    z.string().min(1, 'প্রতিষ্ঠার তারিখ দিন'),
-  owner_name:     z.string().optional(),
-  owner_phone:    z.string().optional(),
-  owner_email:    z.string().optional(),
-  owner_password: z.string().optional(),
+  owner_name:        z.string().optional(),
+  owner_phone:       z.string().optional(),
+  owner_email:       z.string().optional(),
+  owner_password:    z.string().optional(),
+  owner_age:         z.union([z.coerce.number().int().min(0).max(150), z.literal(''), z.undefined()]).optional(),
+  owner_gender:      z.enum(['Male', 'Female', 'Other']).optional(),
+  owner_blood_group: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional(),
+  owner_address:     z.string().optional(),
 })
 
 type HospitalForm = z.output<typeof hospitalSchema>
+
+const OWNER_GENDER_OPTIONS = [
+  { value: 'Male',   label: 'পুরুষ'    },
+  { value: 'Female', label: 'মহিলা'    },
+  { value: 'Other',  label: 'অন্যান্য' },
+]
+const OWNER_BLOOD_GROUP_OPTIONS = [
+  { value: '', label: 'অজানা' },
+  ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
+]
 
 const PAGE_SIZE = 10
 
@@ -59,7 +73,7 @@ export default function HospitalsPage() {
     queryFn:  () => api.admin.getHospitals(),
   })
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<HospitalForm>({
+  const { register, handleSubmit, reset, setError, formState: { errors } } = useForm<HospitalForm>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(hospitalSchema) as any,
   })
@@ -68,17 +82,22 @@ export default function HospitalsPage() {
     mutationFn: (data: HospitalForm) =>
       api.admin.createHospital({
         ...data,
-        status:         'Active',
-        owner_name:     data.owner_name     ?? '',
-        owner_phone:    data.owner_phone    ?? '',
-        owner_email:    data.owner_email    ?? '',
-        owner_password: data.owner_password ?? '',
+        status:            'Active',
+        owner_name:        data.owner_name     ?? '',
+        owner_phone:       data.owner_phone    ?? '',
+        owner_email:       data.owner_email    ?? '',
+        owner_password:    data.owner_password ?? '',
+        owner_age:         Number(data.owner_age),
+        owner_gender:      data.owner_gender!,
+        owner_blood_group: data.owner_blood_group ?? '',
+        owner_address:     data.owner_address ?? '',
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hospitals'] })
       setModalOpen(false)
       reset()
     },
+    onError: (err: Error) => setErrorMsg(err.message),
   })
 
   const updateMutation = useMutation({
@@ -132,7 +151,25 @@ export default function HospitalsPage() {
   }
 
   const onSubmit = (data: HospitalForm) => {
-    editHospital ? updateMutation.mutate(data) : createMutation.mutate(data)
+    if (editHospital) { updateMutation.mutate(data); return }
+
+    // Owner block is required on create
+    let blocked = false
+    if (!data.owner_name?.trim())     { setError('owner_name',     { message: 'মালিকের নাম দিন' });   blocked = true }
+    if (!data.owner_phone?.trim())    { setError('owner_phone',    { message: 'মালিকের ফোন দিন' });   blocked = true }
+    if (!data.owner_email?.trim())    { setError('owner_email',    { message: 'মালিকের ইমেইল দিন' }); blocked = true }
+    if (!data.owner_password?.trim() || data.owner_password.length < 6) {
+      setError('owner_password', { message: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষর' })
+      blocked = true
+    }
+    if (data.owner_age == null || data.owner_age === '' || Number.isNaN(Number(data.owner_age))) {
+      setError('owner_age', { message: 'বয়স দিন' });   blocked = true
+    }
+    if (!data.owner_gender)      { setError('owner_gender',  { message: 'লিঙ্গ নির্বাচন করুন' }); blocked = true }
+    if (!data.owner_address?.trim()) { setError('owner_address', { message: 'ঠিকানা দিন' });        blocked = true }
+    if (blocked) return
+
+    createMutation.mutate(data)
   }
 
   const { filtered, paginated, totalPages, pausedCount } = useMemo(() => {
@@ -367,10 +404,14 @@ export default function HospitalsPage() {
             <div className="border-t border-slate-100 pt-5">
               <p className="text-sm font-bold text-slate-800 mb-3">প্রাথমিক মালিকের তথ্য</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="মালিকের নাম"   {...register('owner_name')} />
-                <Input label="মালিকের ফোন"   {...register('owner_phone')} />
-                <Input label="মালিকের ইমেইল" type="email"    {...register('owner_email')} />
-                <Input label="পাসওয়ার্ড"     type="password" {...register('owner_password')} />
+                <Input label="মালিকের নাম"   error={errors.owner_name?.message}     {...register('owner_name')} />
+                <Input label="মালিকের ফোন"   error={errors.owner_phone?.message}    {...register('owner_phone')} />
+                <Input label="মালিকের ইমেইল" type="email"    error={errors.owner_email?.message}    {...register('owner_email')} />
+                <Input label="পাসওয়ার্ড"     type="password" error={errors.owner_password?.message} {...register('owner_password')} />
+                <Input label="বয়স"        type="number" error={errors.owner_age?.message}        {...register('owner_age')} />
+                <Select label="লিঙ্গ"      error={errors.owner_gender?.message}      placeholder="নির্বাচন করুন" options={OWNER_GENDER_OPTIONS}      {...register('owner_gender')} />
+                <Select label="রক্তের গ্রুপ (ঐচ্ছিক)" error={errors.owner_blood_group?.message} options={OWNER_BLOOD_GROUP_OPTIONS} {...register('owner_blood_group')} />
+                <Input label="ঠিকানা"      error={errors.owner_address?.message}      {...register('owner_address')} />
               </div>
             </div>
           )}
@@ -393,7 +434,9 @@ export default function HospitalsPage() {
         onConfirm={() => pauseTarget && toggleStatusMutation.mutate(pauseTarget.id)}
         title="হাসপাতাল বিরতি দিন"
         message={`"${pauseTarget?.name_bn}" হাসপাতালটি বিরতিতে দিলে এই হাসপাতালের সকল স্টাফ (মালিক, ম্যানেজার, প্যাথলজিস্ট) তাৎক্ষণিকভাবে লগইন করতে পারবেন না। আপনি কি নিশ্চিত?`}
-        confirmLabel="বিরতি দিন"
+        tone="warning"
+        confirmLabel="হ্যাঁ, বিরতি দিন"
+        cancelLabel="না"
         isLoading={toggleStatusMutation.isPending}
       />
 
