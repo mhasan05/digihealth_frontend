@@ -66,6 +66,7 @@ export default function LoginPage() {
           </div>
 
           <form
+            method="post"
             onSubmit={handleSubmit((d) => { setError(''); loginMutation.mutate(d) })}
             noValidate
             className="space-y-4"

@@ -56,7 +56,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <form onSubmit={handleSubmit((d) => registerMutation.mutate(d))} noValidate className="space-y-4">
+          <form method="post" onSubmit={handleSubmit((d) => registerMutation.mutate(d))} noValidate className="space-y-4">
             <Input label="পূর্ণ নাম" placeholder="আপনার নাম লিখুন" error={errors.name?.message} {...register('name')} />
             <Input label="ফোন নম্বর" placeholder="০১৭XXXXXXXX" error={errors.phone?.message} {...register('phone')} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
