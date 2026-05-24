@@ -672,13 +672,13 @@ export default function AppointmentsPage() {
       <Modal
         isOpen={!!admitApt}
         onClose={() => { setAdmitApt(null); setSelectedNurse(null); admitForm.reset() }}
-        title={`রোগী ভর্তি — ${admitApt?.patient_name ?? ''}`}
+        title={`রোগী ভর্তি · ${admitApt?.patient_name ?? ''}`}
         size="sm"
       >
         <form onSubmit={admitForm.handleSubmit(d => admitMutation.mutate(d))} className="space-y-4">
           <Select label="বেড নির্বাচন করুন"
             error={admitForm.formState.errors.bed_id?.message}
-            options={availableBeds.map(b => ({ value: b.id, label: `বেড ${b.number} — ${b.ward} (${b.type})` }))}
+            options={availableBeds.map(b => ({ value: b.id, label: `বেড ${b.number} · ${b.ward} (${b.type})` }))}
             placeholder="বেড নির্বাচন করুন"
             {...admitForm.register('bed_id')}
           />

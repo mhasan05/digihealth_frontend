@@ -58,14 +58,14 @@ export default function CompletedReportsPage() {
                   </div>
                 </TableCell>
                 <TableCell>{r.ordered_by_doctor_name}</TableCell>
-                <TableCell>{r.result ? formatDate(r.result.submitted_at) : '—'}</TableCell>
+                <TableCell>{r.result ? formatDate(r.result.submitted_at) : 'নেই'}</TableCell>
                 <TableCell>
                   {r.result ? (
                     <Badge variant={remarkVariantMap[r.result.remarks]}>
                       {remarkLabelMap[r.result.remarks]}
                     </Badge>
                   ) : (
-                    <span className="text-xs text-slate-400">—</span>
+                    <span className="text-xs text-slate-400">নেই</span>
                   )}
                 </TableCell>
                 <TableCell>

@@ -7,6 +7,7 @@ const PORTAL_COLORS: Record<Portal, string> = {
   owner:       'from-blue-500   to-blue-600',
   manager:     'from-teal-500   to-teal-600',
   pathologist: 'from-amber-500  to-amber-600',
+  doctor:      'from-indigo-500 to-indigo-600',
 }
 
 interface AvatarProps {

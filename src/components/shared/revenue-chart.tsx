@@ -54,7 +54,7 @@ export function RevenueChart({ data }: Props) {
 
   const xPos = useMemo(() => (i: number) => (i + 0.5) * slotW, [slotW])
 
-  const { maxVal, revPts, profPts, yTicks } = useMemo(() => {
+  const { revPts, profPts, yTicks } = useMemo(() => {
     const maxVal = Math.max(...data.flatMap(d => [
       metric !== 'profit'  ? d.revenue : 0,
       metric !== 'revenue' ? d.profit  : 0,
@@ -66,7 +66,7 @@ export function RevenueChart({ data }: Props) {
       y: PT + (1 - f) * CH,
       label: fShort(maxVal * f),
     }))
-    return { maxVal, revPts, profPts, yTicks }
+    return { revPts, profPts, yTicks }
   }, [data, metric, xPos])
 
   const { totalRev, totalProf, avgMargin, revTrend, profTrend } = useMemo(() => {

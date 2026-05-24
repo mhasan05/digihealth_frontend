@@ -22,7 +22,7 @@ const notoBengali = Noto_Sans_Bengali({
 })
 
 export const metadata: Metadata = {
-  title: 'DigiHealth CMS — ডিজিটাল স্বাস্থ্য ব্যবস্থাপনা',
+  title: 'DigiHealth CMS · ডিজিটাল স্বাস্থ্য ব্যবস্থাপনা',
   description: 'বাংলাদেশের অগ্রণী ডিজিটাল ক্লিনিক ম্যানেজমেন্ট সিস্টেম',
   icons: { icon: '/favicon.ico' },
 }

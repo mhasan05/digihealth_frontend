@@ -1,8 +1,8 @@
-export type Role = 'admin' | 'owner' | 'manager' | 'pathologist' | 'patient'
+export type Role = 'admin' | 'owner' | 'manager' | 'pathologist' | 'doctor' | 'patient'
 
-export type Portal = 'user' | 'admin' | 'owner' | 'manager' | 'pathologist'
+export type Portal = 'user' | 'admin' | 'owner' | 'manager' | 'pathologist' | 'doctor'
 
-const PORTAL_PRIORITY: Portal[] = ['admin', 'owner', 'manager', 'pathologist', 'user']
+const PORTAL_PRIORITY: Portal[] = ['admin', 'owner', 'manager', 'pathologist', 'doctor', 'user']
 
 export function derivePortals(roles: Role[]): Portal[] {
   const set = new Set<Portal>(['user'])
@@ -17,6 +17,7 @@ export const PORTAL_ROUTES: Record<Portal, string> = {
   owner: '/owner',
   manager: '/manager',
   pathologist: '/pathologist',
+  doctor: '/doctor',
   user: '/patient',
 }
 
@@ -97,15 +98,38 @@ export interface Pathologist extends Demographics {
   created_at: string
 }
 
+/**
+ * Doctor as seen from the owner / manager portals — a hospital attachment flattened
+ * to keep existing UIs working. `id` is the attachment ID for owner CRUD; on the
+ * manager pick list it's the registry Doctor ID (used as Appointment.doctor_id).
+ *
+ * `availability_status` is the global admin-controlled flag — when 'Unavailable'
+ * the owner cannot set `status` to 'Active'.
+ */
 export interface Doctor {
   id: string
   hospital_id: string
   name: string
-  specialization: string
   phone: string
+  bmdc_registration_no?: string | null
+  availability_status?: 'Available' | 'Unavailable'
+  specialization: string
   schedule: string
   status: 'Active' | 'Inactive'
   created_at: string
+  doctor_id?: string
+}
+
+/** System-wide registry doctor — admin portal + owner registry search. */
+export interface RegistryDoctor {
+  id: string
+  name: string
+  phone: string
+  bmdc_registration_no: string | null
+  specialization: string
+  availability_status?: 'Available' | 'Unavailable'
+  created_at: string
+  attached_hospital_count?: number
 }
 
 export interface Nurse {
@@ -116,6 +140,7 @@ export interface Nurse {
   ward: string
   status: 'Active' | 'Inactive' | 'On-leave'
   created_at: string
+  active_admission_count?: number
 }
 
 export interface Bed {
@@ -150,8 +175,22 @@ export interface Patient {
   address: string
   subscription_tier: 'Free' | 'Premium'
   health_id: string
+  hiv_status?: 'Negative' | 'Positive'
+  /** When true, this patient is hidden from doctor search and detail endpoints. */
+  is_private?: boolean
+  /** Self-reported chronic conditions; see PATIENT_CONDITIONS for the catalogue. */
+  conditions?: PatientCondition[]
   created_at: string
 }
+
+export type PatientCondition = 'asthma' | 'hypertension' | 'diabetes' | 'ckd'
+
+export const PATIENT_CONDITIONS: { value: PatientCondition; label: string; short: string }[] = [
+  { value: 'asthma',       label: 'অ্যাজমা',                short: 'অ্যাজমা'   },
+  { value: 'hypertension', label: 'উচ্চ রক্তচাপ',           short: 'উচ্চ চাপ'  },
+  { value: 'diabetes',     label: 'ডায়াবেটিস',              short: 'ডায়াবেটিস' },
+  { value: 'ckd',          label: 'কিডনি রোগ (CKD)',         short: 'কিডনি'    },
+]
 
 export interface HealthMetric {
   id: string
@@ -173,11 +212,12 @@ export interface MedicalReport {
 export interface ReportAccessLog {
   id: string
   patient_id: string
-  report_id: string
+  /** Null for 'searched' (patient-level lookup), present for report-level actions. */
+  report_id: string | null
   report_name: string
   accessor_name: string
   accessor_role: Role
-  action: 'viewed' | 'downloaded' | 'shared'
+  action: 'searched' | 'viewed' | 'downloaded' | 'shared'
   timestamp: string
 }
 

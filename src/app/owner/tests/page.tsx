@@ -109,7 +109,7 @@ export default function LabTestsPage() {
         <div>
           <h2 className="text-xl font-bold text-slate-900">ল্যাব পরীক্ষা ব্যবস্থাপনা</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            মোট {tests.length}টি পরীক্ষা — সক্রিয় {activeCount}টি
+            মোট {tests.length}টি পরীক্ষা · সক্রিয় {activeCount}টি
           </p>
         </div>
         <Button onClick={handleOpenAdd}>

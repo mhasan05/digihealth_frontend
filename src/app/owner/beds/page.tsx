@@ -131,7 +131,7 @@ export default function BedsPage() {
         <div>
           <h2 className="text-xl font-bold text-slate-900">বেড ব্যবস্থাপনা</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            মোট {beds.length}টি বেড — উপলব্ধ {available}টি, দখলকৃত {occupied}টি
+            মোট {beds.length}টি বেড · উপলব্ধ {available}টি, দখলকৃত {occupied}টি
           </p>
         </div>
         <Button onClick={handleOpenAdd}>

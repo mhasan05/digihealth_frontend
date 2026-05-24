@@ -6,11 +6,12 @@ import { useTranslation } from 'react-i18next'
 import {
   Menu, LogOut, Bell, ChevronDown, Check,
   ArrowLeftRight, HeartPulse, ShieldCheck,
-  Building2, ClipboardList, Microscope, Languages,
+  Building2, ClipboardList, Microscope, Languages, Stethoscope, Settings,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { api } from '@/lib/api'
 import { Avatar } from '@/components/ui/avatar'
+import { SettingsModal } from '@/components/shared/settings-modal'
 import { cn } from '@/lib/utils'
 import type { Portal } from '@/types'
 import { PORTAL_ROUTES } from '@/types'
@@ -51,6 +52,12 @@ const PORTAL_CONFIG: Record<Portal, {
     bg: 'bg-amber-50 hover:bg-amber-100 border-amber-200',
     indicator: 'bg-amber-500',
   },
+  doctor: {
+    icon: Stethoscope,
+    color: 'text-indigo-600',
+    bg: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200',
+    indicator: 'bg-indigo-500',
+  },
 }
 
 interface HeaderProps {
@@ -64,6 +71,7 @@ export function Header({ title, onMenuClick }: HeaderProps) {
   const { t, i18n } = useTranslation()
   const [portalOpen, setPortalOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const portalRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
 
@@ -230,6 +238,13 @@ export function Header({ title, onMenuClick }: HeaderProps) {
                 </div>
                 <div className="py-1">
                   <button
+                    onClick={() => { setProfileOpen(false); setSettingsOpen(true) }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    সেটিংস
+                  </button>
+                  <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
                   >
@@ -242,6 +257,8 @@ export function Header({ title, onMenuClick }: HeaderProps) {
           </div>
         )}
       </div>
+
+      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </header>
   )
 }

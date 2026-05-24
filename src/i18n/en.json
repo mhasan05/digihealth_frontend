@@ -15,7 +15,8 @@
     "upcomingTests": "Upcoming Tests",
     "completedReports": "Completed Reports",
     "myReports": "My Reports",
-    "privacy": "Privacy Log"
+    "privacy": "Privacy Log",
+    "patients": "Patients"
   },
   "auth": {
     "login": "Login",
@@ -190,6 +191,7 @@
     "owner": "Owner Portal",
     "manager": "Manager Portal",
     "pathologist": "Pathologist Portal",
+    "doctor": "Doctor Portal",
     "switch": "Switch Portal",
     "active": "Active Portal"
   },

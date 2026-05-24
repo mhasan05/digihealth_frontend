@@ -43,7 +43,12 @@ export function NurseSearch({ nurses, selected, onSelect, onClear, optional = tr
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-900">{selected.name}</p>
-              <p className="text-xs text-slate-500">{selected.ward}</p>
+              <p className="text-xs text-slate-500">
+                {selected.ward}
+                {selected.active_admission_count != null && (
+                  <span className="ml-1 text-rose-600">· সক্রিয় রোগী: {selected.active_admission_count}</span>
+                )}
+              </p>
             </div>
           </div>
           <button type="button" onClick={onClear}
@@ -68,7 +73,7 @@ export function NurseSearch({ nurses, selected, onSelect, onClear, optional = tr
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          placeholder={empty ? 'কোনো খালি নার্স নেই' : 'নাম বা ওয়ার্ড দিয়ে খুঁজুন...'}
+          placeholder={empty ? 'কোনো নার্স নেই' : 'নাম বা ওয়ার্ড দিয়ে খুঁজুন...'}
           disabled={empty}
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all disabled:bg-slate-50 disabled:cursor-not-allowed"
         />
@@ -81,16 +86,21 @@ export function NurseSearch({ nurses, selected, onSelect, onClear, optional = tr
                 <div className="w-7 h-7 rounded-full bg-rose-50 flex items-center justify-center flex-shrink-0">
                   <HeartPulse className="w-3.5 h-3.5 text-rose-500" />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-slate-900 truncate">{n.name}</p>
-                  <p className="text-xs text-slate-400">{n.ward}</p>
+                  <p className="text-xs text-slate-400 truncate">
+                    {n.ward}
+                    {n.active_admission_count != null && (
+                      <span className="ml-1 text-rose-600">· সক্রিয় রোগী: {n.active_admission_count}</span>
+                    )}
+                  </p>
                 </div>
               </button>
             ))}
           </div>
         )}
         {open && query.length >= 1 && results.length === 0 && !empty && (
-          <p className="mt-1.5 text-xs text-slate-400 pl-1">কোনো খালি নার্স পাওয়া যায়নি</p>
+          <p className="mt-1.5 text-xs text-slate-400 pl-1">কোনো নার্স পাওয়া যায়নি</p>
         )}
       </div>
     </div>

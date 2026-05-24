@@ -7,17 +7,19 @@ import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { StatusBadge } from '@/components/ui/badge'
 import { Table, TableHead, TableBody, TableRow, TableCell } from '@/components/ui/table'
 import { formatDateTime } from '@/lib/utils'
-import { Eye, Download, Share2, Users, Activity, ShieldCheck } from 'lucide-react'
+import { Eye, Download, ShieldCheck, Share2, Search } from 'lucide-react'
 
 const PATIENT_ID = 'pt1'
 
 const actionIcons = {
+  searched: Search,
   viewed: Eye,
   downloaded: Download,
   shared: Share2,
 }
 
 const actionLabels = {
+  searched: 'অনুসন্ধান করেছেন',
   viewed: 'দেখেছেন',
   downloaded: 'ডাউনলোড করেছেন',
   shared: 'শেয়ার করেছেন',
@@ -33,8 +35,7 @@ export default function PrivacyPage() {
 
   const totalViews = logs.filter((l) => l.action === 'viewed').length
   const totalDownloads = logs.filter((l) => l.action === 'downloaded').length
-  const uniquePeople = new Set(logs.map((l) => l.accessor_name)).size
-  const totalAccesses = logs.length
+  const totalSearches = logs.filter((l) => l.action === 'searched').length
 
   return (
     <div className="space-y-6">
@@ -43,11 +44,10 @@ export default function PrivacyPage() {
         <p className="text-sm text-slate-500 mt-1">আপনার রিপোর্টে কে কখন প্রবেশ করেছেন তার বিবরণ</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard icon={Eye} label="মোট দেখা হয়েছে" value={totalViews} color="blue" />
         <StatCard icon={Download} label="মোট ডাউনলোড" value={totalDownloads} color="green" />
-        <StatCard icon={Users} label="অনন্য ব্যক্তি" value={uniquePeople} color="teal" />
-        <StatCard icon={Activity} label="মোট প্রবেশ" value={totalAccesses} color="amber" />
+        <StatCard icon={Search} label="মোট অনুসন্ধান" value={totalSearches} color="teal" />
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -79,7 +79,9 @@ export default function PrivacyPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="text-slate-600 text-xs">{log.report_name}</span>
+                        <span className="text-slate-600 text-xs">
+                          {log.report_name || (log.action === 'searched' ? <em className="text-slate-400">রোগী প্রোফাইল</em> : 'নেই')}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <span className="text-slate-500 text-xs">{formatDateTime(log.timestamp)}</span>
@@ -111,7 +113,9 @@ export default function PrivacyPage() {
                         {actionLabels[log.action]}
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 mt-2 truncate">{log.report_name}</p>
+                    <p className="text-xs text-slate-500 mt-2 truncate">
+                      {log.report_name || (log.action === 'searched' ? 'রোগী প্রোফাইল' : 'নেই')}
+                    </p>
                     <p className="text-xs text-slate-400 mt-1">{formatDateTime(log.timestamp)}</p>
                   </div>
                 )

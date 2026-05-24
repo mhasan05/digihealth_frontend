@@ -101,7 +101,7 @@ export default function ManagerDashboard() {
           </div>
           <h2 className="text-xl font-bold text-slate-900">Manager Dashboard</h2>
         </div>
-        <p className="text-sm text-slate-500 ml-9">Today's operational summary</p>
+        <p className="text-sm text-slate-500 ml-9">Today&apos;s operational summary</p>
       </div>
 
       {/* Stats */}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -14,17 +14,19 @@ import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { StatusBadge } from '@/components/ui/badge'
 import { QRHealthId } from '@/components/shared/qr-health-id'
-import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { StatCard } from '@/components/shared/stat-card'
 import { formatDate, formatDateTime, formatFileSize } from '@/lib/utils'
 import {
-  Plus, Pencil, Trash2, User, Droplets, MapPin, Calendar,
+  Plus, Pencil, Trash2, User,
   TrendingUp, TrendingDown, Minus, Activity, Heart, Scale,
-  Crown, ChevronDown, Phone, Upload, Download, FileText,
-  AlertTriangle, Star, Eye, Share2, ShieldCheck, Users,
-  UserCheck, Microscope, Building2,
+  Crown, ChevronDown, Upload, Download, FileText,
+  AlertTriangle, Star, Eye, Share2, ShieldCheck, Search,
+  UserCheck, Microscope, Building2, Lock, Globe,
 } from 'lucide-react'
 import type { HealthMetric, Role } from '@/types'
+
+const isImageFile = (name: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(name)
+const isPdfFile   = (name: string) => /\.pdf$/i.test(name)
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PATIENT_ID = 'pt1'
@@ -104,10 +106,18 @@ function MetricCard({ type, metrics, onAdd, onEdit, onDelete }: {
 }) {
   const [expanded, setExpanded] = useState(false)
   const cfg  = metricConfig[type], Icon = cfg.icon
-  const sorted = metrics.filter(m => m.metric_type === type)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  // Memoize per-type sort to avoid re-running on every parent render.
+  const sorted = useMemo(
+    () => metrics
+      .filter(m => m.metric_type === type)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [metrics, type],
+  )
   const latest = sorted[0], prev = sorted[1]
-  const sparkValues = sorted.slice().reverse().map(m => cfg.toNumber(m.value))
+  const sparkValues = useMemo(
+    () => sorted.slice().reverse().map(m => cfg.toNumber(m.value)),
+    [sorted, cfg],
+  )
   const latestNum = latest ? cfg.toNumber(latest.value) : null
   const prevNum   = prev   ? cfg.toNumber(prev.value)   : null
   const delta     = latestNum !== null && prevNum !== null ? latestNum - prevNum : null
@@ -137,7 +147,7 @@ function MetricCard({ type, metrics, onAdd, onEdit, onDelete }: {
             </div>
             <div className="flex items-end gap-3">
               <div>
-                <span className={`text-3xl font-extrabold ${cfg.accentText} tracking-tight leading-none`}>{latest?.value ?? '—'}</span>
+                <span className={`text-3xl font-extrabold ${cfg.accentText} tracking-tight leading-none`}>{latest?.value ?? 0}</span>
                 <span className="text-xs text-slate-400 ml-1.5">{cfg.unit}</span>
               </div>
               {deltaLabel && (
@@ -223,7 +233,7 @@ function MetricsTab({ patientId }: { patientId: string }) {
   const queryClient = useQueryClient()
   const [metricModal, setMetricModal] = useState<MetricModalState>({ isOpen: false, type: 'hba1c' })
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const { data: metrics = [] } = useQuery({ queryKey: ['metrics', patientId], queryFn: () => api.patient.getMetrics(patientId) })
+  const { data: metrics = [] } = useQuery({ queryKey: ['metrics', patientId], queryFn: () => api.patient.getMetrics(patientId), staleTime: 5 * 60_000 })
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.patient.deleteMetric(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['metrics', patientId] }); setDeleteId(null) },
@@ -253,9 +263,9 @@ function ReportsTab({ patientId }: { patientId: string }) {
   const [deleteId,     setDeleteId]     = useState<string | null>(null)
   const [dragActive,   setDragActive]   = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const { data: reports = [] } = useQuery({ queryKey: ['reports', patientId], queryFn: () => api.patient.getReports(patientId) })
+  const { data: reports = [] } = useQuery({ queryKey: ['reports', patientId], queryFn: () => api.patient.getReports(patientId), staleTime: 5 * 60_000 })
   const uploadMutation = useMutation({
-    mutationFn: (file: File) => api.patient.uploadReport(patientId, { name: file.name, file_url: URL.createObjectURL(file), size: file.size }),
+    mutationFn: (file: File) => api.patient.uploadReport(patientId, file),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['reports', patientId] }); setUploadOpen(false); setSelectedFile(null) },
   })
   const deleteMutation = useMutation({
@@ -303,22 +313,53 @@ function ReportsTab({ patientId }: { patientId: string }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {reports.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()).map(r => (
-            <div key={r.id} className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-green-50 rounded-lg flex-shrink-0"><FileText className="w-5 h-5 text-green-600" /></div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-slate-900 text-sm truncate">{r.name}</p>
-                  <p className="text-xs text-slate-400 mt-1">{formatFileSize(r.size)}</p>
-                  <p className="text-xs text-slate-400">{formatDateTime(r.uploaded_at)}</p>
+          {reports.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()).map(r => {
+            const isImage = isImageFile(r.name)
+            const isPdf   = isPdfFile(r.name)
+            return (
+              <div key={r.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => window.open(r.file_url, '_blank')}
+                  className="group relative w-full h-40 bg-slate-100 flex items-center justify-center overflow-hidden"
+                  aria-label={`${r.name} প্রিভিউ`}
+                >
+                  {isImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={r.file_url} alt={r.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                  ) : isPdf ? (
+                    <object
+                      data={`${r.file_url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                      type="application/pdf"
+                      className="w-full h-full pointer-events-none"
+                    >
+                      <div className="flex flex-col items-center justify-center h-full w-full bg-red-50">
+                        <FileText className="w-10 h-10 text-red-500" />
+                        <span className="mt-2 text-xs font-semibold text-red-600">PDF</span>
+                      </div>
+                    </object>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center">
+                      <FileText className="w-10 h-10 text-slate-400" />
+                      <span className="mt-2 text-xs font-medium text-slate-500 uppercase">{r.name.split('.').pop() ?? 'ফাইল'}</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                    <Eye className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </button>
+
+                <div className="p-3 flex-1 flex flex-col">
+                  <p className="font-medium text-slate-900 text-sm truncate" title={r.name}>{r.name}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{formatFileSize(r.size)} · {formatDateTime(r.uploaded_at)}</p>
+                  <div className="flex gap-2 mt-3">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => window.open(r.file_url, '_blank')}><Download className="w-3.5 h-3.5" />ডাউনলোড</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setDeleteId(r.id)} className="text-red-500 hover:bg-red-50"><Trash2 className="w-3.5 h-3.5" /></Button>
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-2 mt-4">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => window.open(r.file_url, '_blank')}><Download className="w-3.5 h-3.5" />ডাউনলোড</Button>
-                <Button variant="ghost" size="sm" onClick={() => setDeleteId(r.id)} className="text-red-500 hover:bg-red-50"><Trash2 className="w-3.5 h-3.5" /></Button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
       <Modal isOpen={uploadOpen} onClose={() => { setUploadOpen(false); setSelectedFile(null) }} title="রিপোর্ট আপলোড" size="sm">
@@ -337,7 +378,7 @@ function ReportsTab({ patientId }: { patientId: string }) {
                   ফাইল বেছে নিন
                   <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={e => e.target.files?.[0] && handleFileSelect(e.target.files[0])} />
                 </label>
-                <p className="text-xs text-slate-400 mt-2">PDF, JPG, PNG — সর্বোচ্চ ১০ MB</p>
+                <p className="text-xs text-slate-400 mt-2">PDF, JPG, PNG · সর্বোচ্চ ১০ MB</p>
               </div>
             )}
           </div>
@@ -366,20 +407,19 @@ function ReportsTab({ patientId }: { patientId: string }) {
 
 // ── Tab: গোপনীয়তা ────────────────────────────────────────────────────────────
 function PrivacyTab({ patientId }: { patientId: string }) {
-  const actionIcons  = { viewed: Eye, downloaded: Download, shared: Share2 }
-  const actionLabels = { viewed: 'দেখেছেন', downloaded: 'ডাউনলোড করেছেন', shared: 'শেয়ার করেছেন' }
-  const { data: logs = [] } = useQuery({ queryKey: ['privacy-log', patientId], queryFn: () => api.patient.getPrivacyLog(patientId) })
+  const actionIcons  = { searched: Search, viewed: Eye, downloaded: Download, shared: Share2 }
+  const actionLabels = { searched: 'অনুসন্ধান করেছেন', viewed: 'দেখেছেন', downloaded: 'ডাউনলোড করেছেন', shared: 'শেয়ার করেছেন' }
+  const { data: logs = [] } = useQuery({ queryKey: ['privacy-log', patientId], queryFn: () => api.patient.getPrivacyLog(patientId), staleTime: 60_000 })
   const sorted     = [...logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-  const totalViews = logs.filter(l => l.action === 'viewed').length
-  const totalDl    = logs.filter(l => l.action === 'downloaded').length
-  const unique     = new Set(logs.map(l => l.accessor_name)).size
+  const totalViews    = logs.filter(l => l.action === 'viewed').length
+  const totalDl       = logs.filter(l => l.action === 'downloaded').length
+  const totalSearches = logs.filter(l => l.action === 'searched').length
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Eye}      label="মোট দেখা হয়েছে" value={totalViews} color="blue"  />
-        <StatCard icon={Download} label="মোট ডাউনলোড"   value={totalDl}    color="green" />
-        <StatCard icon={Users}    label="অনন্য ব্যক্তি"  value={unique}     color="teal"  />
-        <StatCard icon={Activity} label="মোট প্রবেশ"     value={logs.length} color="amber" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard icon={Eye}      label="মোট দেখা হয়েছে" value={totalViews}    color="blue"  />
+        <StatCard icon={Download} label="মোট ডাউনলোড"   value={totalDl}       color="green" />
+        <StatCard icon={Search}   label="মোট অনুসন্ধান"   value={totalSearches} color="teal"  />
       </div>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
@@ -396,7 +436,9 @@ function PrivacyTab({ patientId }: { patientId: string }) {
                 <div key={log.id} className="flex items-center gap-4 px-4 py-3 hover:bg-slate-50 transition-colors">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900">{log.accessor_name}</p>
-                    <p className="text-xs text-slate-400 mt-0.5 truncate">{log.report_name}</p>
+                    <p className="text-xs text-slate-400 mt-0.5 truncate">
+                      {log.report_name || (log.action === 'searched' ? 'রোগী প্রোফাইল' : 'নেই')}
+                    </p>
                   </div>
                   <StatusBadge status={log.accessor_role} />
                   <div className="flex items-center gap-1.5 text-xs text-slate-500 whitespace-nowrap">
@@ -429,104 +471,9 @@ const portalLink: Partial<Record<Role, { href: string; label: string; cls: strin
 }
 
 // ── Edit Profile Modal ───────────────────────────────────────────────────────
-const profileSchema = z.object({
-  name:        z.string().min(2, 'নাম দিন'),
-  email:       z.string().email('সঠিক ইমেইল দিন').optional().or(z.literal('')),
-  age:         z.coerce.number({ message: 'বয়স দিন' }).int().min(0).max(150),
-  gender:      z.enum(['Male', 'Female', 'Other'], { message: 'লিঙ্গ নির্বাচন করুন' }),
-  blood_group: z.string().optional(),
-  address:     z.string().min(1, 'ঠিকানা দিন'),
-})
-type ProfileForm = z.output<typeof profileSchema>
-
-function EditProfileModal({
-  isOpen,
-  onClose,
-  patient,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  patient: {
-    name: string
-    age: number
-    gender: 'Male' | 'Female' | 'Other'
-    blood_group: string
-    address: string
-    phone?: string
-  }
-}) {
-  const queryClient = useQueryClient()
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ProfileForm>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(profileSchema) as any,
-    defaultValues: {
-      name:        patient.name,
-      email:       '',
-      age:         patient.age,
-      gender:      patient.gender,
-      blood_group: patient.blood_group === 'Unknown' ? '' : patient.blood_group,
-      address:     patient.address,
-    },
-  })
-
-  const saveMutation = useMutation({
-    mutationFn: (data: ProfileForm) =>
-      api.patient.updateMyProfile({
-        name:        data.name,
-        email:       data.email || undefined,
-        age:         data.age,
-        gender:      data.gender,
-        blood_group: data.blood_group || '',
-        address:     data.address,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['patient', PATIENT_ID] })
-      onClose()
-      reset()
-    },
-    onError: (err: Error) => setErrorMsg(err.message || 'সংরক্ষণ ব্যর্থ হয়েছে'),
-  })
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="প্রোফাইল সম্পাদনা" size="md">
-      <form onSubmit={handleSubmit(d => { setErrorMsg(null); saveMutation.mutate(d) })} className="space-y-4">
-        <Input label="পূর্ণ নাম" error={errors.name?.message} {...register('name')} />
-        <Input label="ইমেইল (ঐচ্ছিক)" type="email" error={errors.email?.message} {...register('email')} />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Input label="বয়স" type="number" error={errors.age?.message} {...register('age')} />
-          <Select label="লিঙ্গ" error={errors.gender?.message}
-            options={[
-              { value: 'Male',   label: 'পুরুষ'    },
-              { value: 'Female', label: 'মহিলা'    },
-              { value: 'Other',  label: 'অন্যান্য' },
-            ]}
-            {...register('gender')}
-          />
-          <Select label="রক্তের গ্রুপ (ঐচ্ছিক)" error={errors.blood_group?.message}
-            options={[
-              { value: '', label: 'অজানা' },
-              ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
-            ]}
-            {...register('blood_group')}
-          />
-          <Input label="ঠিকানা" error={errors.address?.message} {...register('address')} />
-        </div>
-        {patient.phone && (
-          <p className="text-xs text-slate-400">ফোন: <span className="font-mono text-slate-600">{patient.phone}</span> · ফোন পরিবর্তন করতে অ্যাডমিনের সাথে যোগাযোগ করুন</p>
-        )}
-        {errorMsg && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">{errorMsg}</div>
-        )}
-        <div className="flex justify-end gap-3 pt-1">
-          <Button type="button" variant="ghost" onClick={() => { setErrorMsg(null); onClose() }}>বাতিল</Button>
-          <Button type="submit" loading={saveMutation.isPending}>সংরক্ষণ করুন</Button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
+// NOTE: Profile editing has moved to the global SettingsModal (header dropdown),
+// so the in-page EditProfileModal was removed. Add it back here only if you need
+// portal-specific edit fields beyond what SettingsModal already exposes.
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function PatientDashboard() {
@@ -536,12 +483,27 @@ export default function PatientDashboard() {
   const queryClient = useQueryClient()
 
   const [activeTab, setActiveTab] = useState<TabId>('metrics')
-  const [editProfileOpen, setEditProfileOpen] = useState(false)
 
   const { data: patient, isLoading, error } = useQuery({
     queryKey: ['patient', PATIENT_ID],
     queryFn:  () => api.patient.getDashboard(PATIENT_ID),
     retry: false,
+    staleTime: 5 * 60_000,
+  })
+
+  const privacyMutation = useMutation({
+    mutationFn: (next: boolean) => api.patient.setPrivacy(next),
+    onMutate: async (next) => {
+      await queryClient.cancelQueries({ queryKey: ['patient', PATIENT_ID] })
+      const prev = queryClient.getQueryData(['patient', PATIENT_ID])
+      queryClient.setQueryData(['patient', PATIENT_ID], (old: typeof patient) =>
+        old ? { ...old, is_private: next } : old)
+      return { prev }
+    },
+    onError: (_e, _next, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['patient', PATIENT_ID], ctx.prev)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['patient', PATIENT_ID] }),
   })
 
   if (isLoading) return (
@@ -566,96 +528,77 @@ export default function PatientDashboard() {
     </div>
   )
 
-  const genderLabel = patient.gender === 'Male' ? 'পুরুষ' : patient.gender === 'Female' ? 'মহিলা' : 'অন্যান্য'
-  const isPremium   = patient.subscription_tier === 'Premium'
-  const phone       = (patient as { phone?: string }).phone
+  const isPremium     = patient.subscription_tier === 'Premium'
+  const isHivPositive = patient.hiv_status === 'Positive'
+  const isPrivate     = !!patient.is_private
 
   return (
     <div className="space-y-6">
 
       {/* ── Profile Hero ─────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="h-20 sm:h-24 bg-gradient-to-r from-green-600 via-green-500 to-emerald-500" />
-        <div className="px-4 sm:px-6 pb-5 sm:pb-6">
-          <div className="-mt-9 sm:-mt-11 mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-4 border-white shadow-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-              <User className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
-            </div>
-            <div className="sm:mb-1 flex flex-wrap items-center gap-2">
-              {portal && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-slate-100 text-slate-600 border-slate-200">
-                  {role === 'owner' ? <Building2 className="w-3 h-3" /> : role === 'manager' ? <UserCheck className="w-3 h-3" /> : <Microscope className="w-3 h-3" />}
-                  {role === 'owner' ? 'মালিক' : role === 'manager' ? 'ম্যানেজার' : 'প্যাথলজিস্ট'}
-                </span>
-              )}
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-                isPremium ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-500 border-slate-200'
-              }`}>
-                {isPremium && <Crown className="w-3 h-3" />}
-                {isPremium ? 'প্রিমিয়াম' : 'ফ্রি'}
+      <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-colors ${
+        isHivPositive ? 'border-red-300' : 'border-slate-200'
+      }`}>
+        <div className={`relative h-16 sm:h-20 bg-gradient-to-r ${
+          isHivPositive
+            ? 'from-red-600 via-red-500 to-rose-500'
+            : 'from-green-600 via-green-500 to-emerald-500'
+        }`}>
+          <div className="absolute top-3 right-3 sm:top-4 sm:right-5 flex flex-wrap items-center justify-end gap-2">
+            {portal && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-white/90 backdrop-blur text-slate-700 border-white/60 shadow-sm">
+                {role === 'owner' ? <Building2 className="w-3 h-3" /> : role === 'manager' ? <UserCheck className="w-3 h-3" /> : <Microscope className="w-3 h-3" />}
+                {role === 'owner' ? 'মালিক' : role === 'manager' ? 'ম্যানেজার' : 'প্যাথলজিস্ট'}
               </span>
-              <Button size="sm" variant="outline" onClick={() => setEditProfileOpen(true)}>
-                <Pencil className="w-3.5 h-3.5" />সম্পাদনা
-              </Button>
+            )}
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${
+              isPremium ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-white/90 backdrop-blur text-slate-600 border-white/60'
+            }`}>
+              {isPremium && <Crown className="w-3 h-3" />}
+              {isPremium ? 'প্রিমিয়াম' : 'ফ্রি'}
+            </span>
+            <button
+              type="button"
+              onClick={() => privacyMutation.mutate(!isPrivate)}
+              disabled={privacyMutation.isPending}
+              title={isPrivate
+                ? 'ক্লিক করে প্রকাশ্য করুন — ডাক্তার আপনার প্রোফাইল খুঁজে পাবেন'
+                : 'ক্লিক করে ব্যক্তিগত করুন — ডাক্তার আপনার প্রোফাইল খুঁজে পাবেন না'}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-sm transition-all disabled:opacity-60 ${
+                isPrivate
+                  ? 'bg-slate-800 text-white border-slate-700 hover:bg-slate-900'
+                  : 'bg-white/90 backdrop-blur text-slate-700 border-white/60 hover:bg-white'
+              }`}
+            >
+              {isPrivate ? <Lock className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
+              {isPrivate ? 'ব্যক্তিগত' : 'প্রকাশ্য'}
+            </button>
+          </div>
+        </div>
+
+        <div className="px-4 sm:px-6 pb-4 sm:pb-5">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
+            {/* Identity: avatar (pulled up over banner) + name + health_id (stay below banner) */}
+            <div className="flex items-end gap-3 sm:gap-4 min-w-0">
+              <div className={`relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-4 border-white shadow-lg flex items-center justify-center flex-shrink-0 transition-colors -mt-8 sm:-mt-10 ${
+                isHivPositive ? 'bg-red-100' : 'bg-green-100'
+              }`}>
+                <User className={`w-8 h-8 sm:w-10 sm:h-10 ${
+                  isHivPositive ? 'text-red-600' : 'text-green-600'
+                }`} />
+              </div>
+              <div className="min-w-0 pb-0.5 sm:pb-1">
+                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight truncate">{patient.name}</h2>
+                <p className="text-[11px] sm:text-xs font-mono text-slate-400 mt-0.5 tracking-widest">{patient.health_id}</p>
+              </div>
+            </div>
+
+            {/* QR — pushed to the right on desktop, full width on mobile.
+                mt-2 sm:mt-4 gives the small breathing room above the health card. */}
+            <div className="sm:ml-auto w-full sm:w-72 sm:flex-shrink-0 mt-2 sm:mt-4">
+              <QRHealthId healthId={patient.health_id} variant="compact" />
             </div>
           </div>
-          <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight">{patient.name}</h2>
-          <p className="text-[11px] sm:text-xs font-mono text-slate-400 mt-0.5 tracking-widest">{patient.health_id}</p>
-          {(() => {
-            const hasAge     = typeof patient.age === 'number' && patient.age > 0
-            const hasGender  = !!patient.gender && patient.gender !== 'Other'
-            const hasBlood   = !!patient.blood_group && patient.blood_group !== 'Unknown'
-            const hasAddress = !!patient.address?.trim()
-            const tiles: React.ReactNode[] = []
-
-            if (hasAge || hasGender) {
-              tiles.push(
-                <div key="age" className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">বয়স / লিঙ্গ</p>
-                    {hasAge   && <p className="text-sm font-bold text-slate-800 mt-0.5">{patient.age} বছর</p>}
-                    {hasGender && <p className="text-xs text-slate-500">{genderLabel}</p>}
-                  </div>
-                </div>
-              )
-            }
-            if (hasBlood) {
-              tiles.push(
-                <div key="bg" className="flex items-center gap-2.5 p-3 bg-red-50 rounded-xl border border-red-100">
-                  <Droplets className="w-4 h-4 text-red-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">রক্তের গ্রুপ</p>
-                    <p className="text-2xl font-extrabold text-red-600 leading-tight">{patient.blood_group}</p>
-                  </div>
-                </div>
-              )
-            }
-            if (phone) {
-              tiles.push(
-                <div key="ph" className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">ফোন</p>
-                    <p className="text-sm font-bold text-slate-800 mt-0.5">{phone}</p>
-                  </div>
-                </div>
-              )
-            }
-            if (hasAddress) {
-              tiles.push(
-                <div key="ad" className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100 col-span-2 sm:col-span-1">
-                  <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">ঠিকানা</p>
-                    <p className="text-xs font-semibold text-slate-700 mt-0.5 leading-relaxed">{patient.address}</p>
-                  </div>
-                </div>
-              )
-            }
-            if (tiles.length === 0) return null
-            return <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">{tiles}</div>
-          })()}
         </div>
       </div>
 
@@ -675,42 +618,12 @@ export default function PatientDashboard() {
       </div>
 
       {/* ── Tab content ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={activeTab === 'metrics' ? 'lg:col-span-2' : 'lg:col-span-3'}>
-          {activeTab === 'metrics' && <MetricsTab patientId={PATIENT_ID} />}
-          {activeTab === 'reports' && <ReportsTab patientId={PATIENT_ID} />}
-          {activeTab === 'privacy' && <PrivacyTab patientId={PATIENT_ID} />}
-        </div>
-
-        {/* QR card — only alongside metrics tab */}
-        {activeTab === 'metrics' && (
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-              <QRHealthId healthId={patient.health_id} />
-              <div className="mt-4 p-3 bg-green-50 rounded-xl border border-green-100">
-                <p className="text-xs text-green-700 font-medium leading-relaxed">
-                  যেকোনো DigiHealth হাসপাতালে ভিজিটের সময় এই QR কোডটি স্ক্যান করুন।
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+      <div>
+        {activeTab === 'metrics' && <MetricsTab patientId={PATIENT_ID} />}
+        {activeTab === 'reports' && <ReportsTab patientId={PATIENT_ID} />}
+        {activeTab === 'privacy' && <PrivacyTab patientId={PATIENT_ID} />}
       </div>
 
-      {editProfileOpen && (
-        <EditProfileModal
-          isOpen={editProfileOpen}
-          onClose={() => setEditProfileOpen(false)}
-          patient={{
-            name:        patient.name,
-            age:         patient.age ?? 0,
-            gender:      (patient.gender ?? 'Other') as 'Male' | 'Female' | 'Other',
-            blood_group: patient.blood_group ?? 'Unknown',
-            address:     patient.address ?? '',
-            phone,
-          }}
-        />
-      )}
     </div>
   )
 }

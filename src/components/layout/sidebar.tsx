@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Building2, Users, UserCheck, Microscope,
   Stethoscope, BedDouble, FlaskConical, Calendar,
   ClipboardList, TestTube, FileText, ShieldCheck, X,
-  HeartPulse, ChevronRight, Settings, UserCog, Activity,
+  HeartPulse, ChevronRight, Activity,
   CheckCircle, Clock, ArrowLeftRight,
 } from 'lucide-react'
 import type { Portal } from '@/types'
@@ -30,6 +30,7 @@ const NAV_ITEMS: Record<Portal, NavItem[]> = {
   admin: [
     { href: '/admin',           labelKey: 'nav.dashboard',        icon: LayoutDashboard },
     { href: '/admin/hospitals', labelKey: 'nav.hospitals',        icon: Building2 },
+    { href: '/admin/doctors',   labelKey: 'nav.doctors',          icon: Stethoscope },
   ],
   owner: [
     { href: '/owner',               labelKey: 'nav.dashboard',    icon: LayoutDashboard },
@@ -51,6 +52,10 @@ const NAV_ITEMS: Record<Portal, NavItem[]> = {
     { href: '/pathologist',           labelKey: 'nav.dashboard',         icon: LayoutDashboard },
     { href: '/pathologist/upcoming',  labelKey: 'nav.upcomingTests',     icon: Clock },
     { href: '/pathologist/completed', labelKey: 'nav.completedReports',  icon: CheckCircle },
+  ],
+  doctor: [
+    { href: '/doctor',          labelKey: 'nav.dashboard',  icon: LayoutDashboard },
+    { href: '/doctor/patients', labelKey: 'nav.patients',   icon: Users },
   ],
 }
 
@@ -107,6 +112,15 @@ const PORTAL_META: Record<Portal, {
     activeText: 'text-white',
     activeIcon: 'text-amber-400',
     badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
+  },
+  doctor: {
+    label: 'Doctor Portal',
+    icon: Stethoscope,
+    accent: 'text-indigo-400',
+    activeBg: 'bg-indigo-500/15 border border-indigo-500/25',
+    activeText: 'text-white',
+    activeIcon: 'text-indigo-400',
+    badge: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30',
   },
 }
 

@@ -9,7 +9,10 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Card } from '@/components/ui/card'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { formatDateTime, formatFileSize } from '@/lib/utils'
-import { Upload, Download, Trash2, FileText, AlertTriangle, Star } from 'lucide-react'
+import { Upload, Download, Trash2, FileText, AlertTriangle, Star, Eye } from 'lucide-react'
+
+const isImageFile = (name: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(name)
+const isPdfFile = (name: string) => /\.pdf$/i.test(name)
 
 const MAX_FREE_REPORTS = 10
 const PATIENT_ID = 'pt1'
@@ -29,12 +32,7 @@ export default function PatientReportsPage() {
   })
 
   const uploadMutation = useMutation({
-    mutationFn: (file: File) =>
-      api.patient.uploadReport(PATIENT_ID, {
-        name: file.name,
-        file_url: URL.createObjectURL(file),
-        size: file.size,
-      }),
+    mutationFn: (file: File) => api.patient.uploadReport(PATIENT_ID, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reports', PATIENT_ID] })
       setUploadOpen(false)
@@ -131,39 +129,75 @@ export default function PatientReportsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {reports
             .sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime())
-            .map((report) => (
-              <Card key={report.id} className="hover:shadow-md transition-shadow">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-green-50 rounded-lg flex-shrink-0">
-                    <FileText className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 text-sm truncate">{report.name}</p>
-                    <p className="text-xs text-slate-400 mt-1">{formatFileSize(report.size)}</p>
-                    <p className="text-xs text-slate-400">{formatDateTime(report.uploaded_at)}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
+            .map((report) => {
+              const isImage = isImageFile(report.name)
+              const isPdf = isPdfFile(report.name)
+              return (
+                <Card key={report.id} padding="none" className="hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+                  <button
+                    type="button"
                     onClick={() => window.open(report.file_url, '_blank')}
+                    className="group relative w-full h-40 bg-slate-100 flex items-center justify-center overflow-hidden"
+                    aria-label={`${report.name} প্রিভিউ`}
                   >
-                    <Download className="w-3.5 h-3.5" />
-                    ডাউনলোড
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDeleteId(report.id)}
-                    className="text-red-500 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </Card>
-            ))}
+                    {isImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={report.file_url}
+                        alt={report.name}
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    ) : isPdf ? (
+                      <object
+                        data={`${report.file_url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                        type="application/pdf"
+                        className="w-full h-full pointer-events-none"
+                      >
+                        <div className="flex flex-col items-center justify-center h-full w-full bg-red-50">
+                          <FileText className="w-10 h-10 text-red-500" />
+                          <span className="mt-2 text-xs font-semibold text-red-600">PDF</span>
+                        </div>
+                      </object>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center">
+                        <FileText className="w-10 h-10 text-slate-400" />
+                        <span className="mt-2 text-xs font-medium text-slate-500 uppercase">
+                          {report.name.split('.').pop() ?? 'ফাইল'}
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                      <Eye className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </button>
+
+                  <div className="p-3 flex-1 flex flex-col">
+                    <p className="font-medium text-slate-900 text-sm truncate" title={report.name}>{report.name}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{formatFileSize(report.size)} · {formatDateTime(report.uploaded_at)}</p>
+
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => window.open(report.file_url, '_blank')}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        ডাউনলোড
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteId(report.id)}
+                        className="text-red-500 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              )
+            })}
         </div>
       )}
 
@@ -196,7 +230,7 @@ export default function PatientReportsPage() {
                     onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
                   />
                 </label>
-                <p className="text-xs text-slate-400 mt-2">PDF, JPG, PNG — সর্বোচ্চ ১০ MB</p>
+                <p className="text-xs text-slate-400 mt-2">PDF, JPG, PNG · সর্বোচ্চ ১০ MB</p>
               </div>
             )}
           </div>

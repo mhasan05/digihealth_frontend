@@ -1,9 +1,8 @@
 import type {
-  User, Hospital, Owner, Manager, Pathologist, Doctor, Nurse,
+  User, Hospital, Owner, Manager, Pathologist, Doctor, RegistryDoctor, Nurse,
   Bed, LabTest, Patient, HealthMetric, MedicalReport, ReportAccessLog,
   Appointment, Admission, LabOrder, LabResult,
   AdminDashboard, OwnerDashboard, ManagerDashboard, PathologistDashboard,
-  AppointmentStatus, LabOrderStatus,
 } from '@/types'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
@@ -15,10 +14,13 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const { useAuthStore } = await import('@/store/auth-store')
   const token = useAuthStore.getState().accessToken
 
+  const isFormData = typeof FormData !== 'undefined' && opts.body instanceof FormData
+
   const res = await fetch(`${BASE}${path}`, {
     ...opts,
     headers: {
-      'Content-Type': 'application/json',
+      // Let the browser set Content-Type (with boundary) for multipart uploads
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(opts.headers ?? {}),
     },
@@ -34,9 +36,12 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   return body as T
 }
 
+const encodeBody = (data?: unknown) =>
+  data === undefined ? undefined : data instanceof FormData ? data : JSON.stringify(data)
+
 const get  = <T>(path: string)                  => req<T>(path)
-const post = <T>(path: string, data?: unknown)  => req<T>(path, { method: 'POST',   body: data ? JSON.stringify(data) : undefined })
-const put  = <T>(path: string, data?: unknown)  => req<T>(path, { method: 'PUT',    body: data ? JSON.stringify(data) : undefined })
+const post = <T>(path: string, data?: unknown)  => req<T>(path, { method: 'POST',   body: encodeBody(data) })
+const put  = <T>(path: string, data?: unknown)  => req<T>(path, { method: 'PUT',    body: encodeBody(data) })
 const del  = <T>(path: string)                  => req<T>(path, { method: 'DELETE' })
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -51,10 +56,13 @@ export const api = {
     loginAsRole: (role: string) =>
       post<{ user: User; token: string }>('/api/auth/demo-login/', { role }),
 
-    register: (data: Omit<Patient, 'id' | 'user_id' | 'health_id' | 'created_at' | 'subscription_tier'> & { phone: string; password: string }) =>
+    register: (data: { name: string; phone: string; password: string }) =>
       post<{ user: User; token: string }>('/api/auth/register/', data),
 
     logout: () => post<void>('/api/auth/logout/'),
+
+    changePassword: (data: { current_password: string; new_password: string }) =>
+      post<{ detail: string }>('/api/auth/change-password/', data),
   },
 
   // ── Admin ─────────────────────────────────────────────────────────────────
@@ -85,6 +93,22 @@ export const api = {
 
     toggleHospitalStatus: (id: string) =>
       post<Hospital>(`/api/admin/hospitals/${id}/toggle-status/`),
+
+    // Doctor registry (system-wide)
+    getDoctors: (q?: string) =>
+      get<RegistryDoctor[]>(`/api/admin/doctors/${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+
+    createDoctor: (data: { name: string; phone: string; bmdc_registration_no?: string; specialization?: string }) =>
+      post<RegistryDoctor>('/api/admin/doctors/', data),
+
+    updateDoctor: (id: string, data: Partial<{ name: string; phone: string; bmdc_registration_no: string; specialization: string }>) =>
+      put<RegistryDoctor>(`/api/admin/doctors/${id}/`, data),
+
+    deleteDoctor: (id: string) =>
+      del<void>(`/api/admin/doctors/${id}/`),
+
+    setDoctorAvailability: (id: string, availability_status: 'Available' | 'Unavailable') =>
+      post<RegistryDoctor>(`/api/admin/doctors/${id}/availability/`, { availability_status }),
   },
 
   // ── Owner ─────────────────────────────────────────────────────────────────
@@ -129,13 +153,16 @@ export const api = {
     getDoctors: (_hospitalId: string) =>
       get<Doctor[]>('/api/owner/doctors/'),
 
-    addDoctor: (_hospitalId: string, data: Omit<Doctor, 'id' | 'hospital_id' | 'created_at'>) =>
+    searchRegistryDoctors: (q: string) =>
+      get<RegistryDoctor[]>(`/api/owner/doctors/search/?q=${encodeURIComponent(q)}`),
+
+    attachDoctor: (_hospitalId: string, data: { doctor_id: string; schedule?: string; status?: 'Active' | 'Inactive' }) =>
       post<Doctor>('/api/owner/doctors/', data),
 
-    updateDoctor: (id: string, data: Partial<Doctor>) =>
+    updateDoctor: (id: string, data: Partial<Pick<Doctor, 'schedule' | 'status'>>) =>
       put<Doctor>(`/api/owner/doctors/${id}/`, data),
 
-    deleteDoctor: (id: string) =>
+    detachDoctor: (id: string) =>
       del<void>(`/api/owner/doctors/${id}/`),
 
     getNurses: (_hospitalId: string) =>
@@ -288,8 +315,11 @@ export const api = {
     getDashboard: (_patientId: string) =>
       get<Patient>('/api/patient/me/'),
 
-    updateMyProfile: (data: Partial<Pick<Patient, 'name' | 'age' | 'gender' | 'blood_group' | 'address'>> & { email?: string }) =>
+    updateMyProfile: (data: Partial<Pick<Patient, 'name' | 'age' | 'gender' | 'blood_group' | 'address' | 'conditions'>> & { email?: string }) =>
       put<Patient>('/api/patient/me/', data),
+
+    setPrivacy: (is_private: boolean) =>
+      put<Patient>('/api/patient/me/', { is_private }),
 
     getMetrics: (_patientId: string) =>
       get<HealthMetric[]>('/api/patient/metrics/'),
@@ -306,13 +336,47 @@ export const api = {
     getReports: (_patientId: string) =>
       get<MedicalReport[]>('/api/patient/reports/'),
 
-    uploadReport: (_patientId: string, data: Omit<MedicalReport, 'id' | 'patient_id' | 'uploaded_at'>) =>
-      post<MedicalReport>('/api/patient/reports/', data),
+    uploadReport: (_patientId: string, file: File) => {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('name', file.name)
+      return post<MedicalReport>('/api/patient/reports/', fd)
+    },
 
     deleteReport: (id: string) =>
       del<void>(`/api/patient/reports/${id}/`),
 
     getPrivacyLog: (_patientId: string) =>
       get<ReportAccessLog[]>('/api/patient/privacy-log/'),
+  },
+
+  // ── Doctor ────────────────────────────────────────────────────────────────
+  doctor: {
+    getMe: () =>
+      get<Doctor & {
+        hospitals: { id: string; name: string; schedule: string; status: 'Active' | 'Inactive' }[]
+      }>('/api/doctor/me/'),
+
+    searchPatients: (q: string) =>
+      get<Patient[]>(`/api/doctor/patients/?q=${encodeURIComponent(q)}`),
+
+    getPatient: (id: string) =>
+      get<Patient>(`/api/doctor/patients/${id}/`),
+
+    setHivStatus: (id: string, hiv_status: 'Negative' | 'Positive') =>
+      post<Patient>(`/api/doctor/patients/${id}/hiv-status/`, { hiv_status }),
+
+    listReports: (patientId: string) =>
+      get<MedicalReport[]>(`/api/doctor/patients/${patientId}/reports/`),
+
+    logAccess: (
+      patientId: string,
+      action: 'searched' | 'viewed' | 'downloaded',
+      reportId?: string,
+    ) =>
+      post<{ detail: string }>(`/api/doctor/patients/${patientId}/access-log/`, {
+        action,
+        ...(reportId ? { report_id: reportId } : {}),
+      }),
   },
 }

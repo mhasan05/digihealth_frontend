@@ -86,7 +86,7 @@ export default function PathologistDashboard() {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-sm font-bold text-slate-900">Today's Progress</p>
+            <p className="text-sm font-bold text-slate-900">Today&apos;s Progress</p>
             <p className="text-xs text-slate-400 mt-0.5">{data.completed_today} of {data.total_assigned} tests completed</p>
           </div>
           <span className="text-2xl font-extrabold text-slate-900">{completionRate}%</span>

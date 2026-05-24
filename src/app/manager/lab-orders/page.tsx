@@ -403,8 +403,8 @@ export default function LabOrdersPage() {
           <Select
             label="পরীক্ষা"
             error={newOrderForm.formState.errors.test_id?.message}
-            options={labTests.filter(t => t.available).map(t => ({ value: t.id, label: `${t.name}${t.price ? ` — ৳${t.price}` : ''}` }))}
-            placeholder={labTests.length === 0 ? 'কোনো পরীক্ষা নেই — Owner থেকে যোগ করুন' : 'পরীক্ষা নির্বাচন করুন'}
+            options={labTests.filter(t => t.available).map(t => ({ value: t.id, label: `${t.name}${t.price ? ` · ৳${t.price}` : ''}` }))}
+            placeholder={labTests.length === 0 ? 'কোনো পরীক্ষা নেই · Owner থেকে যোগ করুন' : 'পরীক্ষা নির্বাচন করুন'}
             {...newOrderForm.register('test_id')}
           />
           <DoctorSearch
