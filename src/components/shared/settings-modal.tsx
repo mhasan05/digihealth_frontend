@@ -21,6 +21,7 @@ const profileSchema = z.object({
   gender:      z.enum(['Male', 'Female', 'Other'], { message: 'লিঙ্গ নির্বাচন করুন' }),
   blood_group: z.string().optional(),
   address:     z.string().optional(),
+  nid:         z.string().regex(/^\d{10}$|^\d{13}$|^\d{17}$/, 'সঠিক NID নম্বর দিন (১০, ১৩ বা ১৭ ডিজিট)').optional().or(z.literal('')),
 })
 type ProfileForm = z.output<typeof profileSchema>
 
@@ -87,7 +88,7 @@ function ProfileSection({ onClose }: { onClose: () => void }) {
     resolver: zodResolver(profileSchema) as any,
     defaultValues: {
       name: '', email: '', age: 0,
-      gender: 'Other', blood_group: '', address: '',
+      gender: 'Other', blood_group: '', address: '', nid: '',
     },
   })
 
@@ -100,6 +101,7 @@ function ProfileSection({ onClose }: { onClose: () => void }) {
         gender:      (me.gender ?? 'Other') as 'Male' | 'Female' | 'Other',
         blood_group: me.blood_group && me.blood_group !== 'Unknown' ? me.blood_group : '',
         address:     me.address ?? '',
+        nid:         me.nid ?? '',
       })
       setConditions((me.conditions ?? []) as PatientCondition[])
     }
@@ -120,6 +122,7 @@ function ProfileSection({ onClose }: { onClose: () => void }) {
         gender:      data.gender,
         blood_group: data.blood_group || '',
         address:     data.address || '',
+        nid:         data.nid || '',
         conditions,
       }),
     onSuccess: () => {
@@ -163,6 +166,7 @@ function ProfileSection({ onClose }: { onClose: () => void }) {
           {...register('blood_group')}
         />
         <Input label="ঠিকানা" error={errors.address?.message} {...register('address')} />
+        <Input label="NID নম্বর (ঐচ্ছিক)" placeholder="১০, ১৩ বা ১৭ ডিজিট" error={errors.nid?.message} {...register('nid')} />
       </div>
 
       <div>

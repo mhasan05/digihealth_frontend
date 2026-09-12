@@ -176,6 +176,8 @@ export interface Patient {
   subscription_tier: 'Free' | 'Premium'
   health_id: string
   hiv_status?: 'Negative' | 'Positive'
+  /** National ID number; self-reported and optional. */
+  nid?: string
   /** When true, this patient is hidden from doctor search and detail endpoints. */
   is_private?: boolean
   /** Self-reported chronic conditions; see PATIENT_CONDITIONS for the catalogue. */
