@@ -195,7 +195,7 @@ export const PATIENT_CONDITIONS: { value: PatientCondition; label: string; short
 export interface HealthMetric {
   id: string
   patient_id: string
-  metric_type: 'hba1c' | 'blood_pressure' | 'weight'
+  metric_type: 'rbs' | 'blood_pressure' | 'weight'
   date: string
   value: string
 }

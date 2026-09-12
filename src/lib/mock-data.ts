@@ -540,7 +540,7 @@ export const mockLabTests: LabTest[] = [
 ]
 
 export const mockPatients: Patient[] = [
-  { id: 'pt1', user_id: 'u10', name: 'মোঃ আরিফুল ইসলাম', phone: '01716000001', age: 45, gender: 'Male',   blood_group: 'B+',  address: 'মিরপুর-১০, ঢাকা',     subscription_tier: 'Free',    health_id: 'DH-190000000001', created_at: '2024-01-10T00:00:00Z' },
+  { id: 'pt1', user_id: 'u10', name: 'মোঃ আরিফুল ইসলাম', phone: '01716000001', age: 45, gender: 'Male',   blood_group: 'B+',  address: 'মিরপুর-১০, ঢাকা',     subscription_tier: 'Free',    health_id: 'DH-190000000001', conditions: ['diabetes', 'hypertension'], created_at: '2024-01-10T00:00:00Z' },
   { id: 'pt2', user_id: 'u11', name: 'সালমা বেগম',        phone: '01716000002', age: 38, gender: 'Female', blood_group: 'O+',  address: 'উত্তরা, ঢাকা',        subscription_tier: 'Premium', health_id: 'DH-190000000002', created_at: '2024-01-15T00:00:00Z' },
   { id: 'pt3', user_id: 'u12', name: 'রাশেদ খান',         phone: '01716000003', age: 52, gender: 'Male',   blood_group: 'A+',  address: 'ধানমন্ডি, ঢাকা',      subscription_tier: 'Free',    health_id: 'DH-190000000003', created_at: '2024-02-01T00:00:00Z' },
   { id: 'pt4', user_id: 'u13', name: 'ফাতেমা খাতুন',     phone: '01716000004', age: 29, gender: 'Female', blood_group: 'AB+', address: 'গুলশান, ঢাকা',        subscription_tier: 'Premium', health_id: 'DH-190000000004', created_at: '2024-02-10T00:00:00Z' },
@@ -550,9 +550,9 @@ export const mockPatients: Patient[] = [
 ]
 
 export const mockHealthMetrics: HealthMetric[] = [
-  { id: 'hm1', patient_id: 'pt1', metric_type: 'hba1c', date: '2025-01-15', value: '7.2' },
-  { id: 'hm2', patient_id: 'pt1', metric_type: 'hba1c', date: '2025-03-10', value: '6.8' },
-  { id: 'hm3', patient_id: 'pt1', metric_type: 'hba1c', date: '2025-05-01', value: '6.5' },
+  { id: 'hm1', patient_id: 'pt1', metric_type: 'rbs', date: '2025-01-15', value: '182' },
+  { id: 'hm2', patient_id: 'pt1', metric_type: 'rbs', date: '2025-03-10', value: '165' },
+  { id: 'hm3', patient_id: 'pt1', metric_type: 'rbs', date: '2025-05-01', value: '148' },
   { id: 'hm4', patient_id: 'pt1', metric_type: 'blood_pressure', date: '2025-01-15', value: '130/85' },
   { id: 'hm5', patient_id: 'pt1', metric_type: 'blood_pressure', date: '2025-03-10', value: '125/80' },
   { id: 'hm6', patient_id: 'pt1', metric_type: 'blood_pressure', date: '2025-05-01', value: '120/78' },

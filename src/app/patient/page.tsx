@@ -21,8 +21,9 @@ import {
   TrendingUp, TrendingDown, Minus, Activity, Heart, Scale,
   Crown, ChevronDown, Upload, Download, FileText,
   AlertTriangle, Star, Eye, Share2, ShieldCheck, Search,
-  UserCheck, Microscope, Building2, Lock, Globe,
+  UserCheck, Microscope, Building2, Lock, Globe, Calendar, HeartPulse,
 } from 'lucide-react'
+import { PATIENT_CONDITIONS, type PatientCondition } from '@/types'
 import type { HealthMetric, Role } from '@/types'
 
 const isImageFile = (name: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(name)
@@ -34,11 +35,11 @@ const MAX_FREE   = 10
 const IS_PREMIUM = false
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
-const hba1cSchema  = z.object({ value: z.coerce.number().min(3).max(15), date: z.string().min(1) })
+const rbsSchema    = z.object({ value: z.coerce.number().min(40).max(600), date: z.string().min(1) })
 const bpSchema     = z.object({ value: z.string().regex(/^\d{2,3}\/\d{2,3}$/, 'ফরম্যাট: ১২০/৮০'), date: z.string().min(1) })
 const weightSchema = z.object({ value: z.coerce.number().min(1).max(300), date: z.string().min(1) })
 
-type MetricType = 'hba1c' | 'blood_pressure' | 'weight'
+type MetricType = 'rbs' | 'blood_pressure' | 'weight'
 interface MetricModalState { isOpen: boolean; type: MetricType; editing?: HealthMetric }
 
 // ── Metric config ─────────────────────────────────────────────────────────────
@@ -51,14 +52,14 @@ const metricConfig: Record<MetricType, {
   goodTrend: 'down' | 'up' | 'neutral'
   placeholder: string
 }> = {
-  hba1c: {
-    label: 'HbA1c', unit: '%', svgColor: '#0ea5e9',
+  rbs: {
+    label: 'RBS', unit: 'mg/dL', svgColor: '#0ea5e9',
     accentBg: 'bg-green-50', accentText: 'text-green-600', accentBorder: 'border-green-200', dotBg: 'bg-green-100',
     icon: Activity, toNumber: v => parseFloat(v),
-    status: n => n < 5.7 ? { label: 'স্বাভাবিক', cls: 'bg-green-100 text-green-700' }
-               : n < 6.5 ? { label: 'প্রি-ডায়াবেটিক', cls: 'bg-amber-100 text-amber-700' }
+    status: n => n < 140 ? { label: 'স্বাভাবিক', cls: 'bg-green-100 text-green-700' }
+               : n < 200 ? { label: 'প্রি-ডায়াবেটিক', cls: 'bg-amber-100 text-amber-700' }
                :            { label: 'ডায়াবেটিক', cls: 'bg-red-100 text-red-700' },
-    goodTrend: 'down', placeholder: '৬.৫',
+    goodTrend: 'down', placeholder: '১৪০',
   },
   blood_pressure: {
     label: 'রক্তচাপ', unit: 'mmHg', svgColor: '#f43f5e',
@@ -195,7 +196,7 @@ function MetricCard({ type, metrics, onAdd, onEdit, onDelete }: {
 function MetricModal({ state, onClose, patientId }: { state: MetricModalState; onClose: () => void; patientId: string }) {
   const queryClient = useQueryClient()
   const cfg = metricConfig[state.type]
-  const schema = state.type === 'hba1c' ? hba1cSchema : state.type === 'blood_pressure' ? bpSchema : weightSchema
+  const schema = state.type === 'rbs' ? rbsSchema : state.type === 'blood_pressure' ? bpSchema : weightSchema
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { value: state.editing?.value ?? '', date: state.editing?.date ?? new Date().toISOString().split('T')[0] },
@@ -231,7 +232,7 @@ function MetricModal({ state, onClose, patientId }: { state: MetricModalState; o
 // ── Tab: স্বাস্থ্য পরিমাপ ────────────────────────────────────────────────────
 function MetricsTab({ patientId }: { patientId: string }) {
   const queryClient = useQueryClient()
-  const [metricModal, setMetricModal] = useState<MetricModalState>({ isOpen: false, type: 'hba1c' })
+  const [metricModal, setMetricModal] = useState<MetricModalState>({ isOpen: false, type: 'rbs' })
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const { data: metrics = [] } = useQuery({ queryKey: ['metrics', patientId], queryFn: () => api.patient.getMetrics(patientId), staleTime: 5 * 60_000 })
   const deleteMutation = useMutation({
@@ -240,14 +241,14 @@ function MetricsTab({ patientId }: { patientId: string }) {
   })
   return (
     <div className="space-y-4">
-      {(['hba1c', 'blood_pressure', 'weight'] as MetricType[]).map(type => (
+      {(['rbs', 'blood_pressure', 'weight'] as MetricType[]).map(type => (
         <MetricCard key={type} type={type} metrics={metrics}
           onAdd={t => setMetricModal({ isOpen: true, type: t })}
           onEdit={m => setMetricModal({ isOpen: true, type: m.metric_type, editing: m })}
           onDelete={id => setDeleteId(id)}
         />
       ))}
-      <MetricModal state={metricModal} onClose={() => setMetricModal({ isOpen: false, type: 'hba1c' })} patientId={patientId} />
+      <MetricModal state={metricModal} onClose={() => setMetricModal({ isOpen: false, type: 'rbs' })} patientId={patientId} />
       <ConfirmDialog isOpen={!!deleteId} onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
         title="রিডিং মুছুন" message="আপনি কি এই রিডিংটি মুছে ফেলতে চান?" isLoading={deleteMutation.isPending} />
@@ -531,6 +532,8 @@ export default function PatientDashboard() {
   const isPremium     = patient.subscription_tier === 'Premium'
   const isHivPositive = patient.hiv_status === 'Positive'
   const isPrivate     = !!patient.is_private
+  const genderLabel   = patient.gender === 'Male' ? 'পুরুষ' : patient.gender === 'Female' ? 'মহিলা' : 'অন্যান্য'
+  const conditions    = (patient.conditions ?? []) as PatientCondition[]
 
   return (
     <div className="space-y-6">
@@ -590,6 +593,14 @@ export default function PatientDashboard() {
               <div className="min-w-0 pb-0.5 sm:pb-1">
                 <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight truncate">{patient.name}</h2>
                 <p className="text-[11px] sm:text-xs font-mono text-slate-400 mt-0.5 tracking-widest">{patient.health_id}</p>
+                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                    <Calendar className="w-3 h-3" />{patient.age} বছর
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                    {genderLabel}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -599,6 +610,23 @@ export default function PatientDashboard() {
               <QRHealthId healthId={patient.health_id} variant="compact" />
             </div>
           </div>
+
+          {/* Self-reported long-term conditions */}
+          {conditions.length > 0 && (
+            <div className="mt-4 px-3 py-2.5 bg-amber-50/70 rounded-xl border border-amber-100">
+              <div className="flex items-center gap-2 mb-1.5">
+                <HeartPulse className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">দীর্ঘমেয়াদী রোগ</p>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {PATIENT_CONDITIONS.filter(c => conditions.includes(c.value)).map(c => (
+                  <span key={c.value} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-100 text-amber-800 ring-1 ring-amber-300">
+                    {c.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
