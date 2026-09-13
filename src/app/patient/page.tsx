@@ -23,7 +23,7 @@ import {
   AlertTriangle, Star, Eye, Share2, ShieldCheck, Search,
   UserCheck, Microscope, Building2, Lock, Globe, Calendar, HeartPulse,
 } from 'lucide-react'
-import { PATIENT_CONDITIONS, type PatientCondition } from '@/types'
+import { PATIENT_CONDITIONS, type PatientCondition, ROLE_APPLICATION_TYPES } from '@/types'
 import type { HealthMetric, Role } from '@/types'
 
 const isImageFile = (name: string) => /\.(png|jpe?g|gif|webp|svg)$/i.test(name)
@@ -492,6 +492,15 @@ export default function PatientDashboard() {
     staleTime: 5 * 60_000,
   })
 
+  const { data: roleApplications = [] } = useQuery({
+    queryKey: ['role-applications'],
+    queryFn: api.patient.getRoleApplications,
+    staleTime: 60_000,
+  })
+  const approvedRoles = roleApplications
+    .filter(a => a.status === 'Approved' && a.role_type !== 'organization_owner')
+    .map(a => ROLE_APPLICATION_TYPES.find(r => r.value === a.role_type)?.label ?? a.role_type)
+
   const privacyMutation = useMutation({
     mutationFn: (next: boolean) => api.patient.setPrivacy(next),
     onMutate: async (next) => {
@@ -591,7 +600,17 @@ export default function PatientDashboard() {
                 }`} />
               </div>
               <div className="min-w-0 pb-0.5 sm:pb-1">
-                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight truncate">{patient.name}</h2>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight truncate">{patient.name}</h2>
+                  {approvedRoles.map(label => (
+                    <span
+                      key={label}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 flex-shrink-0"
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
                 <p className="text-[11px] sm:text-xs font-mono text-slate-400 mt-0.5 tracking-widest">{patient.health_id}</p>
                 <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
