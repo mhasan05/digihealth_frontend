@@ -18,16 +18,16 @@ import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { StaffImportModal } from '@/components/shared/staff-import-modal'
 import { formatDate } from '@/lib/utils'
 import { Plus, Pencil, Trash2, UserPlus } from 'lucide-react'
-import type { Nurse } from '@/types'
+import type { MedicalAssistant } from '@/types'
 
-const nurseSchema = z.object({
+const maSchema = z.object({
   name: z.string().min(2, 'নাম দিন'),
   phone: z.string().min(11, 'ফোন নম্বর দিন'),
   ward: z.string().min(2, 'ওয়ার্ড দিন'),
   status: z.enum(['Active', 'Inactive', 'On-leave']),
 })
 
-type NurseForm = z.infer<typeof nurseSchema>
+type MAForm = z.infer<typeof maSchema>
 
 const statusVariantMap: Record<string, 'green' | 'gray' | 'amber'> = {
   Active: 'green',
@@ -41,70 +41,67 @@ const statusLabelMap: Record<string, string> = {
   'On-leave': 'ছুটিতে',
 }
 
-export default function NursesPage() {
+export default function MedicalAssistantsPage() {
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
-  const [editNurse, setEditNurse] = useState<Nurse | null>(null)
+  const [editRow, setEditRow] = useState<MedicalAssistant | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const { data: nurses = [], isLoading } = useQuery({
-    queryKey: ['nurses', hospitalId],
-    queryFn: () => api.owner.getNurses(hospitalId),
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ['medical-assistants', hospitalId],
+    queryFn: () => api.owner.getMedicalAssistants(hospitalId),
   })
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<NurseForm>({
-    resolver: zodResolver(nurseSchema),
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<MAForm>({
+    resolver: zodResolver(maSchema),
     defaultValues: { status: 'Active' },
   })
 
   const addMutation = useMutation({
-    mutationFn: (data: NurseForm) => api.owner.addNurse(hospitalId, data),
+    mutationFn: (data: MAForm) => api.owner.addMedicalAssistant(hospitalId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['nurses', hospitalId] })
+      queryClient.invalidateQueries({ queryKey: ['medical-assistants', hospitalId] })
       setModalOpen(false)
       reset()
     },
   })
 
   const updateMutation = useMutation({
-    mutationFn: (data: NurseForm) => api.owner.updateNurse(editNurse!.id, data),
+    mutationFn: (data: MAForm) => api.owner.updateMedicalAssistant(editRow!.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['nurses', hospitalId] })
+      queryClient.invalidateQueries({ queryKey: ['medical-assistants', hospitalId] })
       setModalOpen(false)
-      setEditNurse(null)
+      setEditRow(null)
       reset()
     },
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.owner.deleteNurse(id),
+    mutationFn: (id: string) => api.owner.deleteMedicalAssistant(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['nurses', hospitalId] })
+      queryClient.invalidateQueries({ queryKey: ['medical-assistants', hospitalId] })
       setDeleteId(null)
     },
   })
 
   const handleOpenAdd = () => {
     reset({ status: 'Active' })
-    setEditNurse(null)
+    setEditRow(null)
     setModalOpen(true)
   }
 
-  const handleOpenEdit = (n: Nurse) => {
-    reset({ name: n.name, phone: n.phone, ward: n.ward, status: n.status })
-    setEditNurse(n)
+  const handleOpenEdit = (row: MedicalAssistant) => {
+    reset({ name: row.name, phone: row.phone, ward: row.ward, status: row.status })
+    setEditRow(row)
     setModalOpen(true)
   }
 
-  const onSubmit = (data: NurseForm) => {
-    if (editNurse) {
-      updateMutation.mutate(data)
-    } else {
-      addMutation.mutate(data)
-    }
+  const onSubmit = (data: MAForm) => {
+    if (editRow) updateMutation.mutate(data)
+    else addMutation.mutate(data)
   }
 
   if (isLoading) return <LoadingSpinner />
@@ -113,8 +110,8 @@ export default function NursesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">নার্স ব্যবস্থাপনা</h2>
-          <p className="text-sm text-slate-500 mt-0.5">মোট {nurses.length}জন নার্স</p>
+          <h2 className="text-xl font-bold text-slate-900">মেডিকেল অ্যাসিস্ট্যান্ট ব্যবস্থাপনা</h2>
+          <p className="text-sm text-slate-500 mt-0.5">মোট {rows.length}জন মেডিকেল অ্যাসিস্ট্যান্ট</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setImportOpen(true)}>
@@ -123,7 +120,7 @@ export default function NursesPage() {
           </Button>
           <Button onClick={handleOpenAdd}>
             <Plus className="w-4 h-4" />
-            নার্স যোগ করুন
+            যোগ করুন
           </Button>
         </div>
       </div>
@@ -131,27 +128,27 @@ export default function NursesPage() {
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <Table>
           <TableHead columns={['নাম', 'ফোন', 'ওয়ার্ড', 'স্ট্যাটাস', 'যোগদান', 'কার্যক্রম']} />
-          <TableBody isEmpty={nurses.length === 0} emptyMessage="কোনো নার্স নেই" colSpan={6}>
-            {nurses.map((n) => (
-              <TableRow key={n.id}>
-                <TableCell><span className="font-medium">{n.name}</span></TableCell>
-                <TableCell>{n.phone}</TableCell>
-                <TableCell>{n.ward}</TableCell>
+          <TableBody isEmpty={rows.length === 0} emptyMessage="কোনো মেডিকেল অ্যাসিস্ট্যান্ট নেই" colSpan={6}>
+            {rows.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell><span className="font-medium">{r.name}</span></TableCell>
+                <TableCell>{r.phone}</TableCell>
+                <TableCell>{r.ward}</TableCell>
                 <TableCell>
-                  <Badge variant={statusVariantMap[n.status]}>{statusLabelMap[n.status]}</Badge>
+                  <Badge variant={statusVariantMap[r.status]}>{statusLabelMap[r.status]}</Badge>
                 </TableCell>
-                <TableCell>{formatDate(n.created_at)}</TableCell>
+                <TableCell>{formatDate(r.created_at)}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleOpenEdit(n)}
+                      onClick={() => handleOpenEdit(r)}
                       className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
                       aria-label="সম্পাদনা"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => setDeleteId(n.id)}
+                      onClick={() => setDeleteId(r.id)}
                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                       aria-label="মুছুন"
                     >
@@ -166,21 +163,21 @@ export default function NursesPage() {
       </div>
 
       <div className="md:hidden space-y-3">
-        {nurses.map((n) => (
-          <div key={n.id} className="bg-white rounded-xl border border-slate-200 p-4">
+        {rows.map((r) => (
+          <div key={r.id} className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="font-semibold text-slate-900">{n.name}</p>
-                <p className="text-sm text-slate-500">{n.phone} | ওয়ার্ড: {n.ward}</p>
+                <p className="font-semibold text-slate-900">{r.name}</p>
+                <p className="text-sm text-slate-500">{r.phone} | ওয়ার্ড: {r.ward}</p>
                 <div className="mt-2">
-                  <Badge variant={statusVariantMap[n.status]}>{statusLabelMap[n.status]}</Badge>
+                  <Badge variant={statusVariantMap[r.status]}>{statusLabelMap[r.status]}</Badge>
                 </div>
               </div>
               <div className="flex gap-1">
-                <button onClick={() => handleOpenEdit(n)} className="p-1.5 text-slate-400 hover:text-green-600">
+                <button onClick={() => handleOpenEdit(r)} className="p-1.5 text-slate-400 hover:text-green-600">
                   <Pencil className="w-4 h-4" />
                 </button>
-                <button onClick={() => setDeleteId(n.id)} className="p-1.5 text-slate-400 hover:text-red-600">
+                <button onClick={() => setDeleteId(r.id)} className="p-1.5 text-slate-400 hover:text-red-600">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -191,8 +188,8 @@ export default function NursesPage() {
 
       <Modal
         isOpen={modalOpen}
-        onClose={() => { setModalOpen(false); setEditNurse(null); reset() }}
-        title={editNurse ? 'নার্স সম্পাদনা' : 'নার্স যোগ করুন'}
+        onClose={() => { setModalOpen(false); setEditRow(null); reset() }}
+        title={editRow ? 'সম্পাদনা করুন' : 'মেডিকেল অ্যাসিস্ট্যান্ট যোগ করুন'}
         size="sm"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -210,11 +207,11 @@ export default function NursesPage() {
             {...register('status')}
           />
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={() => { setModalOpen(false); setEditNurse(null); reset() }}>
+            <Button type="button" variant="outline" onClick={() => { setModalOpen(false); setEditRow(null); reset() }}>
               বাতিল
             </Button>
             <Button type="submit" loading={addMutation.isPending || updateMutation.isPending}>
-              {editNurse ? 'আপডেট করুন' : 'যোগ করুন'}
+              {editRow ? 'আপডেট করুন' : 'যোগ করুন'}
             </Button>
           </div>
         </form>
@@ -224,19 +221,19 @@ export default function NursesPage() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        title="নার্স মুছুন"
-        message="আপনি কি এই নার্সকে মুছে ফেলতে চান?"
+        title="মুছুন"
+        message="আপনি কি এই মেডিকেল অ্যাসিস্ট্যান্টকে মুছে ফেলতে চান?"
         isLoading={deleteMutation.isPending}
       />
 
       <StaffImportModal
         isOpen={importOpen}
         onClose={() => setImportOpen(false)}
-        roleLabel="নার্স"
-        queryKeyPrefix="nurse"
-        search={api.owner.searchAvailableNurses}
-        doImport={api.owner.importNurse}
-        onImported={() => queryClient.invalidateQueries({ queryKey: ['nurses', hospitalId] })}
+        roleLabel="মেডিকেল অ্যাসিস্ট্যান্ট"
+        queryKeyPrefix="medical-assistant"
+        search={api.owner.searchAvailableMedicalAssistants}
+        doImport={api.owner.importMedicalAssistant}
+        onImported={() => queryClient.invalidateQueries({ queryKey: ['medical-assistants', hospitalId] })}
       />
     </div>
   )

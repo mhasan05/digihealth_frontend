@@ -9,7 +9,7 @@ import {
   Stethoscope, BedDouble, FlaskConical, Calendar,
   ClipboardList, TestTube, FileText, ShieldCheck, X,
   HeartPulse, ChevronRight, Activity,
-  CheckCircle, Clock, ArrowLeftRight,
+  CheckCircle, Clock, ArrowLeftRight, UserPlus,
 } from 'lucide-react'
 import type { Portal } from '@/types'
 import { PORTAL_ROUTES } from '@/types'
@@ -23,24 +23,28 @@ interface NavItem {
 
 const NAV_ITEMS: Record<Portal, NavItem[]> = {
   user: [
-    { href: '/patient',         labelKey: 'nav.dashboard',        icon: LayoutDashboard },
-    { href: '/patient/reports', labelKey: 'nav.myReports',        icon: FileText },
-    { href: '/patient/privacy', labelKey: 'nav.privacy',          icon: ShieldCheck },
+    { href: '/patient',                 labelKey: 'nav.dashboard',       icon: LayoutDashboard },
+    { href: '/patient/reports',         labelKey: 'nav.myReports',       icon: FileText },
+    { href: '/patient/additional-role', labelKey: 'nav.additionalRole',  icon: UserPlus },
+    { href: '/patient/privacy',         labelKey: 'nav.privacy',         icon: ShieldCheck },
   ],
   admin: [
-    { href: '/admin',           labelKey: 'nav.dashboard',        icon: LayoutDashboard },
-    { href: '/admin/hospitals', labelKey: 'nav.hospitals',        icon: Building2 },
-    { href: '/admin/doctors',   labelKey: 'nav.doctors',          icon: Stethoscope },
+    { href: '/admin',                     labelKey: 'nav.dashboard',        icon: LayoutDashboard },
+    { href: '/admin/hospitals',           labelKey: 'nav.hospitals',        icon: Building2 },
+    { href: '/admin/doctors',             labelKey: 'nav.doctors',          icon: Stethoscope },
+    { href: '/admin/role-applications',   labelKey: 'nav.roleApplications', icon: UserPlus },
   ],
   owner: [
-    { href: '/owner',               labelKey: 'nav.dashboard',    icon: LayoutDashboard },
-    { href: '/owner/managers',      labelKey: 'nav.managers',     icon: UserCheck },
-    { href: '/owner/doctors',       labelKey: 'nav.doctors',      icon: Stethoscope },
-    { href: '/owner/nurses',        labelKey: 'nav.nurses',       icon: Activity },
-    { href: '/owner/pathologists',  labelKey: 'nav.pathologists', icon: Microscope },
-    { href: '/owner/co-owners',     labelKey: 'nav.coOwners',     icon: Users },
-    { href: '/owner/beds',          labelKey: 'nav.beds',         icon: BedDouble },
-    { href: '/owner/tests',         labelKey: 'nav.tests',        icon: FlaskConical },
+    { href: '/owner',                    labelKey: 'nav.dashboard',           icon: LayoutDashboard },
+    { href: '/owner/managers',           labelKey: 'nav.managers',            icon: UserCheck },
+    { href: '/owner/doctors',            labelKey: 'nav.doctors',             icon: Stethoscope },
+    { href: '/owner/nurses',             labelKey: 'nav.nurses',              icon: Activity },
+    { href: '/owner/medical-assistants', labelKey: 'nav.medicalAssistants',   icon: ClipboardList },
+    { href: '/owner/midwives',           labelKey: 'nav.midwives',            icon: HeartPulse },
+    { href: '/owner/pathologists',       labelKey: 'nav.pathologists',        icon: Microscope },
+    { href: '/owner/co-owners',          labelKey: 'nav.coOwners',            icon: Users },
+    { href: '/owner/beds',               labelKey: 'nav.beds',                icon: BedDouble },
+    { href: '/owner/tests',              labelKey: 'nav.tests',               icon: FlaskConical },
   ],
   manager: [
     { href: '/manager',               labelKey: 'nav.dashboard',    icon: LayoutDashboard },

@@ -43,6 +43,8 @@ export function StatusBadge({ status }: { status: string }) {
     Inactive:              { variant: 'gray',   label: 'নিষ্ক্রিয়',         dot: true },
     'On-leave':            { variant: 'amber',  label: 'ছুটিতে',            dot: true },
     Pending:               { variant: 'amber',  label: 'অপেক্ষমান',          dot: true },
+    Approved:              { variant: 'green',  label: 'অনুমোদিত',           dot: true },
+    Rejected:              { variant: 'red',    label: 'প্রত্যাখ্যাত',       dot: true },
     Confirmed:             { variant: 'blue',   label: 'নিশ্চিত',            dot: true },
     Completed:             { variant: 'green',  label: 'সম্পন্ন',            dot: true },
     Cancelled:             { variant: 'red',    label: 'বাতিল',             dot: true },

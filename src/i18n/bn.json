@@ -16,7 +16,11 @@
     "completedReports": "সম্পন্ন রিপোর্ট",
     "myReports": "আমার রিপোর্ট",
     "privacy": "গোপনীয়তা লগ",
-    "patients": "রোগী"
+    "patients": "রোগী",
+    "additionalRole": "অতিরিক্ত ভূমিকা",
+    "roleApplications": "ভূমিকার আবেদন",
+    "medicalAssistants": "মেডিকেল অ্যাসিস্ট্যান্ট",
+    "midwives": "মিডওয়াইফ"
   },
   "auth": {
     "login": "লগইন করুন",

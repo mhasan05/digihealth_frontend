@@ -16,7 +16,11 @@
     "completedReports": "Completed Reports",
     "myReports": "My Reports",
     "privacy": "Privacy Log",
-    "patients": "Patients"
+    "patients": "Patients",
+    "additionalRole": "Additional Role",
+    "roleApplications": "Role Applications",
+    "medicalAssistants": "Medical Assistants",
+    "midwives": "Midwives"
   },
   "auth": {
     "login": "Login",

@@ -1,5 +1,6 @@
 import type {
   User, Hospital, Owner, Manager, Pathologist, Doctor, RegistryDoctor, Nurse,
+  MedicalAssistant, Midwife, RoleApplication, AdminRoleApplication, RoleApplicationType,
   Bed, LabTest, Patient, HealthMetric, MedicalReport, ReportAccessLog,
   Appointment, Admission, LabOrder, LabResult,
   AdminDashboard, OwnerDashboard, ManagerDashboard, PathologistDashboard,
@@ -109,6 +110,19 @@ export const api = {
 
     setDoctorAvailability: (id: string, availability_status: 'Available' | 'Unavailable') =>
       post<RegistryDoctor>(`/api/admin/doctors/${id}/availability/`, { availability_status }),
+
+    // Role applications (patient self-service requests for an additional role)
+    getRoleApplications: (params?: { status?: string; role_type?: RoleApplicationType; q?: string }) => {
+      const entries = Object.entries(params ?? {}).filter(([, v]) => !!v) as [string, string][]
+      const qs = new URLSearchParams(entries).toString()
+      return get<AdminRoleApplication[]>(`/api/admin/role-applications/${qs ? `?${qs}` : ''}`)
+    },
+
+    approveRoleApplication: (id: string) =>
+      post<AdminRoleApplication>(`/api/admin/role-applications/${id}/approve/`),
+
+    rejectRoleApplication: (id: string, reason?: string) =>
+      post<AdminRoleApplication>(`/api/admin/role-applications/${id}/reject/`, { reason }),
   },
 
   // ── Owner ─────────────────────────────────────────────────────────────────
@@ -176,6 +190,48 @@ export const api = {
 
     deleteNurse: (id: string) =>
       del<void>(`/api/owner/nurses/${id}/`),
+
+    searchAvailableNurses: (q: string) =>
+      get<Nurse[]>(`/api/owner/nurses/available/?q=${encodeURIComponent(q)}`),
+
+    importNurse: (nurse_id: string, ward?: string) =>
+      post<Nurse>('/api/owner/nurses/import/', { nurse_id, ward }),
+
+    getMedicalAssistants: (_hospitalId: string) =>
+      get<MedicalAssistant[]>('/api/owner/medical-assistants/'),
+
+    addMedicalAssistant: (_hospitalId: string, data: Omit<MedicalAssistant, 'id' | 'hospital_id' | 'created_at'>) =>
+      post<MedicalAssistant>('/api/owner/medical-assistants/', data),
+
+    updateMedicalAssistant: (id: string, data: Partial<MedicalAssistant>) =>
+      put<MedicalAssistant>(`/api/owner/medical-assistants/${id}/`, data),
+
+    deleteMedicalAssistant: (id: string) =>
+      del<void>(`/api/owner/medical-assistants/${id}/`),
+
+    searchAvailableMedicalAssistants: (q: string) =>
+      get<MedicalAssistant[]>(`/api/owner/medical-assistants/available/?q=${encodeURIComponent(q)}`),
+
+    importMedicalAssistant: (medical_assistant_id: string, ward?: string) =>
+      post<MedicalAssistant>('/api/owner/medical-assistants/import/', { medical_assistant_id, ward }),
+
+    getMidwives: (_hospitalId: string) =>
+      get<Midwife[]>('/api/owner/midwives/'),
+
+    addMidwife: (_hospitalId: string, data: Omit<Midwife, 'id' | 'hospital_id' | 'created_at'>) =>
+      post<Midwife>('/api/owner/midwives/', data),
+
+    updateMidwife: (id: string, data: Partial<Midwife>) =>
+      put<Midwife>(`/api/owner/midwives/${id}/`, data),
+
+    deleteMidwife: (id: string) =>
+      del<void>(`/api/owner/midwives/${id}/`),
+
+    searchAvailableMidwives: (q: string) =>
+      get<Midwife[]>(`/api/owner/midwives/available/?q=${encodeURIComponent(q)}`),
+
+    importMidwife: (midwife_id: string, ward?: string) =>
+      post<Midwife>('/api/owner/midwives/import/', { midwife_id, ward }),
 
     getBeds: (_hospitalId: string) =>
       get<Bed[]>('/api/owner/beds/'),
@@ -348,6 +404,12 @@ export const api = {
 
     getPrivacyLog: (_patientId: string) =>
       get<ReportAccessLog[]>('/api/patient/privacy-log/'),
+
+    getRoleApplications: () =>
+      get<RoleApplication[]>('/api/patient/role-applications/'),
+
+    submitRoleApplication: (data: FormData) =>
+      post<RoleApplication>('/api/patient/role-applications/', data),
   },
 
   // ── Doctor ────────────────────────────────────────────────────────────────

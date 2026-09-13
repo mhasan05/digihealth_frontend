@@ -43,7 +43,7 @@ export interface Hospital {
   id: string
   name_bn: string
   name_en: string
-  type: 'General' | 'Specialized' | 'Clinic' | 'Diagnostic'
+  type: 'General' | 'Specialized' | 'Clinic' | 'Diagnostic' | 'Hospital'
   status: 'Active' | 'Paused'
   address: string
   phone: string
@@ -134,13 +134,77 @@ export interface RegistryDoctor {
 
 export interface Nurse {
   id: string
-  hospital_id: string
+  hospital_id: string | null
   name: string
   phone: string
   ward: string
   status: 'Active' | 'Inactive' | 'On-leave'
   created_at: string
   active_admission_count?: number
+}
+
+/** Approved-but-unattached staff — hospital_id is null until an owner imports them. */
+export interface MedicalAssistant {
+  id: string
+  hospital_id: string | null
+  name: string
+  phone: string
+  ward: string
+  status: 'Active' | 'Inactive' | 'On-leave'
+  created_at: string
+}
+
+export interface Midwife {
+  id: string
+  hospital_id: string | null
+  name: string
+  phone: string
+  ward: string
+  status: 'Active' | 'Inactive' | 'On-leave'
+  created_at: string
+}
+
+export type RoleApplicationType = 'doctor' | 'nurse' | 'medical_assistant' | 'midwife' | 'organization_owner'
+export type RoleApplicationStatus = 'Pending' | 'Approved' | 'Rejected'
+export type OrgType = 'Diagnostic' | 'Clinic' | 'Hospital'
+
+export const ROLE_APPLICATION_TYPES: { value: RoleApplicationType; label: string }[] = [
+  { value: 'doctor',              label: 'ডাক্তার' },
+  { value: 'nurse',                label: 'নার্স' },
+  { value: 'medical_assistant',    label: 'মেডিকেল অ্যাসিস্ট্যান্ট' },
+  { value: 'midwife',              label: 'মিডওয়াইফ' },
+  { value: 'organization_owner',   label: 'প্রতিষ্ঠান মালিক' },
+]
+
+/** A patient's self-service application for an additional role. */
+export interface RoleApplication {
+  id: string
+  role_type: RoleApplicationType
+  status: RoleApplicationStatus
+  registration_number: string
+  document_url: string
+  facility_photo_url: string
+  org_name: string
+  org_type: OrgType | ''
+  validity_till: string | null
+  org_phone: string
+  location_text: string
+  upazilla: string
+  district: string
+  division: string
+  post_code: string
+  rejection_reason: string
+  created_at: string
+  reviewed_at: string | null
+}
+
+/** Admin-facing shape — includes applicant identity + reviewer name. */
+export interface AdminRoleApplication extends RoleApplication {
+  applicant_id: string
+  applicant_name: string
+  applicant_phone: string
+  applicant_health_id: string
+  reviewed_by_name: string
 }
 
 export interface Bed {
