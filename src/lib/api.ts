@@ -30,10 +30,24 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   // 204 No Content — return undefined
   if (res.status === 204) return undefined as T
 
-  const body = await res.json()
-  if (!res.ok) {
-    throw new Error(body.detail ?? body.message ?? 'Request failed')
+  // Read as text first — a reverse proxy or an unhandled server error can
+  // return an HTML error page instead of JSON, and calling res.json()
+  // directly on that throws an opaque "Unexpected token '<'" parse error.
+  const raw = await res.text()
+  let body: unknown
+  if (raw) {
+    try { body = JSON.parse(raw) } catch { /* not JSON — fall through to the raw-text error below */ }
   }
+
+  if (!res.ok) {
+    const parsed = body as { detail?: string; message?: string } | undefined
+    const message = parsed?.detail ?? parsed?.message
+      ?? (raw ? `Server error (${res.status}): ${raw.slice(0, 200)}` : `Request failed (${res.status})`)
+    throw new Error(message)
+  }
+
+  if (!raw) return undefined as T
+  if (body === undefined) throw new Error(`Unexpected non-JSON response (${res.status})`)
   return body as T
 }
 
