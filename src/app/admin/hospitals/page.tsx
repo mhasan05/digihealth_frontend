@@ -21,7 +21,7 @@ import type { Hospital } from '@/types'
 const hospitalSchema = z.object({
   name_bn:        z.string().min(2, 'বাংলা নাম দিন'),
   name_en:        z.string().min(2, 'ইংরেজি নাম দিন'),
-  type:           z.enum(['General', 'Specialized', 'Clinic', 'Diagnostic']),
+  type:           z.enum(['General', 'Specialized', 'Clinic', 'Diagnostic', 'Hospital']),
   address:        z.string().min(5, 'ঠিকানা দিন'),
   phone:          z.string().min(8, 'ফোন নম্বর দিন'),
   email:          z.string().email('সঠিক ইমেইল দিন'),
@@ -56,6 +56,7 @@ const typeLabels: Record<Hospital['type'], string> = {
   Specialized: 'বিশেষায়িত',
   Clinic:      'ক্লিনিক',
   Diagnostic:  'ডায়াগনস্টিক',
+  Hospital:    'হাসপাতাল',
 }
 
 export default function HospitalsPage() {
@@ -388,6 +389,7 @@ export default function HospitalsPage() {
                 { value: 'Specialized', label: 'বিশেষায়িত'   },
                 { value: 'Clinic',      label: 'ক্লিনিক'      },
                 { value: 'Diagnostic',  label: 'ডায়াগনস্টিক' },
+                { value: 'Hospital',    label: 'হাসপাতাল'     },
               ]}
               {...register('type')}
             />
