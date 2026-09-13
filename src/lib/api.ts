@@ -169,14 +169,17 @@ export const api = {
     getPathologists: (_hospitalId: string) =>
       get<Pathologist[]>('/api/owner/pathologists/'),
 
-    addPathologist: (_hospitalId: string, data: Omit<Pathologist, 'id' | 'hospital_id' | 'created_at'>) =>
-      post<Pathologist>('/api/owner/pathologists/', data),
-
     updatePathologist: (id: string, data: Partial<Pathologist>) =>
       put<Pathologist>(`/api/owner/pathologists/${id}/`, data),
 
     deletePathologist: (id: string) =>
       del<void>(`/api/owner/pathologists/${id}/`),
+
+    searchAvailablePathologists: (q: string) =>
+      get<Pathologist[]>(`/api/owner/pathologists/available/?q=${encodeURIComponent(q)}`),
+
+    importPathologist: (pathologist_id: string, specialization?: string) =>
+      post<Pathologist>('/api/owner/pathologists/import/', { pathologist_id, specialization }),
 
     getDoctors: (_hospitalId: string) =>
       get<Doctor[]>('/api/owner/doctors/'),
@@ -196,9 +199,6 @@ export const api = {
     getNurses: (_hospitalId: string) =>
       get<Nurse[]>('/api/owner/nurses/'),
 
-    addNurse: (_hospitalId: string, data: Omit<Nurse, 'id' | 'hospital_id' | 'created_at'>) =>
-      post<Nurse>('/api/owner/nurses/', data),
-
     updateNurse: (id: string, data: Partial<Nurse>) =>
       put<Nurse>(`/api/owner/nurses/${id}/`, data),
 
@@ -214,9 +214,6 @@ export const api = {
     getMedicalAssistants: (_hospitalId: string) =>
       get<MedicalAssistant[]>('/api/owner/medical-assistants/'),
 
-    addMedicalAssistant: (_hospitalId: string, data: Omit<MedicalAssistant, 'id' | 'hospital_id' | 'created_at'>) =>
-      post<MedicalAssistant>('/api/owner/medical-assistants/', data),
-
     updateMedicalAssistant: (id: string, data: Partial<MedicalAssistant>) =>
       put<MedicalAssistant>(`/api/owner/medical-assistants/${id}/`, data),
 
@@ -231,9 +228,6 @@ export const api = {
 
     getMidwives: (_hospitalId: string) =>
       get<Midwife[]>('/api/owner/midwives/'),
-
-    addMidwife: (_hospitalId: string, data: Omit<Midwife, 'id' | 'hospital_id' | 'created_at'>) =>
-      post<Midwife>('/api/owner/midwives/', data),
 
     updateMidwife: (id: string, data: Partial<Midwife>) =>
       put<Midwife>(`/api/owner/midwives/${id}/`, data),

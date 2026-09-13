@@ -15,8 +15,10 @@ interface StaffImportModalProps<T extends Applicant> {
   roleLabel: string
   queryKeyPrefix: string
   search: (q: string) => Promise<T[]>
-  doImport: (id: string, ward?: string) => Promise<T>
+  doImport: (id: string, extraValue?: string) => Promise<T>
   onImported: () => void
+  /** Label for the optional per-hospital field set at import time (ward, specialization, ...). */
+  extraFieldLabel?: string
 }
 
 /**
@@ -28,14 +30,15 @@ interface StaffImportModalProps<T extends Applicant> {
  */
 export function StaffImportModal<T extends Applicant>({
   isOpen, onClose, roleLabel, queryKeyPrefix, search, doImport, onImported,
+  extraFieldLabel = 'ওয়ার্ড (ঐচ্ছিক)',
 }: StaffImportModalProps<T>) {
   const [query, setQuery] = useState('')
   const [picked, setPicked] = useState<T | null>(null)
-  const [ward, setWard] = useState('')
+  const [extraValue, setExtraValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (isOpen) { setQuery(''); setPicked(null); setWard('') }
+    if (isOpen) { setQuery(''); setPicked(null); setExtraValue('') }
   }, [isOpen])
 
   useEffect(() => {
@@ -50,7 +53,7 @@ export function StaffImportModal<T extends Applicant>({
   })
 
   const importMutation = useMutation({
-    mutationFn: () => doImport(picked!.id, ward.trim() || undefined),
+    mutationFn: () => doImport(picked!.id, extraValue.trim() || undefined),
     onSuccess: () => { onImported(); onClose() },
   })
 
@@ -127,7 +130,7 @@ export function StaffImportModal<T extends Applicant>({
               <p className="text-xs text-slate-500">{picked.phone}</p>
             </div>
           </div>
-          <Input label="ওয়ার্ড (ঐচ্ছিক)" value={ward} onChange={e => setWard(e.target.value)} />
+          <Input label={extraFieldLabel} value={extraValue} onChange={e => setExtraValue(e.target.value)} />
           <div className="flex justify-between gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={() => setPicked(null)}>← অন্য কেউ বাছুন</Button>
             <div className="flex gap-3">

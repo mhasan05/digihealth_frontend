@@ -11,7 +11,7 @@ import { StatusBadge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { formatDate } from '@/lib/utils'
 import {
-  Plus, Stethoscope, Activity, ClipboardList, HeartPulse, Building2,
+  Plus, Stethoscope, Activity, ClipboardList, HeartPulse, Building2, Microscope,
   Upload, FileText, AlertTriangle, ArrowLeft, Clock,
 } from 'lucide-react'
 import { ROLE_APPLICATION_TYPES, type RoleApplicationType, type RoleApplication, type OrgType } from '@/types'
@@ -20,6 +20,7 @@ const ROLE_ICONS: Record<RoleApplicationType, React.ElementType> = {
   doctor: Stethoscope,
   nurse: Activity,
   medical_assistant: ClipboardList,
+  pathologist: Microscope,
   midwife: HeartPulse,
   organization_owner: Building2,
 }

@@ -88,7 +88,7 @@ export interface Manager extends Demographics {
 
 export interface Pathologist extends Demographics {
   id: string
-  hospital_id: string
+  hospital_id: string | null
   name: string
   phone: string
   email: string
@@ -164,7 +164,7 @@ export interface Midwife {
   created_at: string
 }
 
-export type RoleApplicationType = 'doctor' | 'nurse' | 'medical_assistant' | 'midwife' | 'organization_owner'
+export type RoleApplicationType = 'doctor' | 'nurse' | 'medical_assistant' | 'midwife' | 'pathologist' | 'organization_owner'
 export type RoleApplicationStatus = 'Pending' | 'Approved' | 'Rejected'
 export type OrgType = 'Diagnostic' | 'Clinic' | 'Hospital'
 
@@ -173,6 +173,7 @@ export const ROLE_APPLICATION_TYPES: { value: RoleApplicationType; label: string
   { value: 'nurse',                label: 'নার্স' },
   { value: 'medical_assistant',    label: 'মেডিকেল অ্যাসিস্ট্যান্ট' },
   { value: 'midwife',              label: 'মিডওয়াইফ' },
+  { value: 'pathologist',          label: 'প্যাথলজিস্ট' },
   { value: 'organization_owner',   label: 'প্রতিষ্ঠান মালিক' },
 ]
 

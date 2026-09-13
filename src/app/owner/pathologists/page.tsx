@@ -15,15 +15,17 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHead, TableBody, TableRow, TableCell } from '@/components/ui/table'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
+import { StaffImportModal } from '@/components/shared/staff-import-modal'
 import { formatDate } from '@/lib/utils'
-import { Plus, Pencil, Trash2, KeyRound } from 'lucide-react'
+import { Pencil, Trash2, UserPlus } from 'lucide-react'
 import type { Pathologist } from '@/types'
 
-const pathologistSchema = z.object({
+// Owners can only edit an already-imported pathologist's own-hospital fields
+// (name/email/specialization/status/demographics) — phone and password are
+// never accepted by PathologistDetailView.put(), so they're left out here.
+const pathologistEditSchema = z.object({
   name:           z.string().min(2, 'নাম দিন'),
-  phone:          z.string().min(11, 'ফোন নম্বর দিন'),
   email:          z.string().email('সঠিক ইমেইল দিন'),
-  password:       z.string().optional(),
   specialization: z.string().min(2, 'বিশেষজ্ঞতা দিন'),
   status:         z.enum(['Active', 'Inactive']),
   age:            z.coerce.number({ message: 'বয়স দিন' }).int().min(0).max(150),
@@ -32,7 +34,7 @@ const pathologistSchema = z.object({
   address:        z.string().min(1, 'ঠিকানা দিন'),
 })
 
-type PathologistForm = z.infer<typeof pathologistSchema>
+type PathologistEditForm = z.infer<typeof pathologistEditSchema>
 
 const GENDER_OPTIONS = [
   { value: 'Male',   label: 'পুরুষ'    },
@@ -48,7 +50,7 @@ export default function PathologistsPage() {
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
   const queryClient = useQueryClient()
-  const [modalOpen, setModalOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [editPathologist, setEditPathologist] = useState<Pathologist | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
@@ -57,26 +59,15 @@ export default function PathologistsPage() {
     queryFn: () => api.owner.getPathologists(hospitalId),
   })
 
-  const { register, handleSubmit, reset, setError, formState: { errors } } = useForm<PathologistForm>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<PathologistEditForm>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(pathologistSchema) as any,
-    defaultValues: { status: 'Active' },
-  })
-
-  const addMutation = useMutation({
-    mutationFn: (data: PathologistForm) => api.owner.addPathologist(hospitalId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pathologists', hospitalId] })
-      setModalOpen(false)
-      reset()
-    },
+    resolver: zodResolver(pathologistEditSchema) as any,
   })
 
   const updateMutation = useMutation({
-    mutationFn: (data: PathologistForm) => api.owner.updatePathologist(editPathologist!.id, data),
+    mutationFn: (data: PathologistEditForm) => api.owner.updatePathologist(editPathologist!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pathologists', hospitalId] })
-      setModalOpen(false)
       setEditPathologist(null)
       reset()
     },
@@ -90,40 +81,16 @@ export default function PathologistsPage() {
     },
   })
 
-  const handleOpenAdd = () => {
-    reset({ status: 'Active', password: '' })
-    setEditPathologist(null)
-    setModalOpen(true)
-  }
-
   const handleOpenEdit = (p: Pathologist) => {
     reset({
-      name: p.name, phone: p.phone, email: p.email,
-      specialization: p.specialization, status: p.status, password: '',
+      name: p.name, email: p.email,
+      specialization: p.specialization, status: p.status,
       age:         p.age ?? 0,
       gender:      (p.gender as 'Male' | 'Female' | 'Other') ?? 'Male',
-      blood_group: (p.blood_group as 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-') ?? 'A+',
+      blood_group: (p.blood_group as 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-') ?? '',
       address:     p.address ?? '',
     })
     setEditPathologist(p)
-    setModalOpen(true)
-  }
-
-  const onSubmit = (data: PathologistForm) => {
-    if (!editPathologist) {
-      if (!data.password || data.password.length < 6) {
-        setError('password', { message: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে' })
-        return
-      }
-    } else if (data.password && data.password.length < 6) {
-      setError('password', { message: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে' })
-      return
-    }
-    if (editPathologist) {
-      updateMutation.mutate(data)
-    } else {
-      addMutation.mutate(data)
-    }
   }
 
   if (isLoading) return <LoadingSpinner />
@@ -135,10 +102,14 @@ export default function PathologistsPage() {
           <h2 className="text-xl font-bold text-slate-900">প্যাথলজিস্ট ব্যবস্থাপনা</h2>
           <p className="text-sm text-slate-500 mt-0.5">মোট {pathologists.length}জন প্যাথলজিস্ট</p>
         </div>
-        <Button onClick={handleOpenAdd}>
-          <Plus className="w-4 h-4" />
-          প্যাথলজিস্ট যোগ করুন
+        <Button onClick={() => setImportOpen(true)}>
+          <UserPlus className="w-4 h-4" />
+          আবেদনকারী থেকে যুক্ত করুন
         </Button>
+      </div>
+
+      <div className="flex items-start gap-2 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700">
+        প্যাথলজিস্ট শুধু অ্যাডমিন-অনুমোদিত আবেদনকারীদের তালিকা থেকেই যুক্ত করা যায় — সরাসরি নতুন অ্যাকাউন্ট তৈরি করা যায় না।
       </div>
 
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -212,15 +183,14 @@ export default function PathologistsPage() {
       </div>
 
       <Modal
-        isOpen={modalOpen}
-        onClose={() => { setModalOpen(false); setEditPathologist(null); reset() }}
-        title={editPathologist ? 'প্যাথলজিস্ট সম্পাদনা' : 'প্যাথলজিস্ট যোগ করুন'}
-        subtitle={!editPathologist ? 'নতুন প্যাথলজিস্ট তৈরি হলে তিনি ফোন নম্বর ও পাসওয়ার্ড দিয়ে লগইন করতে পারবেন' : 'পাসওয়ার্ড পরিবর্তন করতে চাইলে নতুন পাসওয়ার্ড দিন, অন্যথায় খালি রাখুন'}
+        isOpen={!!editPathologist}
+        onClose={() => { setEditPathologist(null); reset() }}
+        title="প্যাথলজিস্ট সম্পাদনা"
+        subtitle={editPathologist ? `ফোন: ${editPathologist.phone} (পরিবর্তনযোগ্য নয়)` : undefined}
         size="sm"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(data => updateMutation.mutate(data))} className="space-y-4">
           <Input label="নাম" error={errors.name?.message} {...register('name')} />
-          <Input label="ফোন নম্বর" error={errors.phone?.message} {...register('phone')} />
           <Input label="ইমেইল" type="email" error={errors.email?.message} {...register('email')} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -228,21 +198,6 @@ export default function PathologistsPage() {
             <Select label="লিঙ্গ" error={errors.gender?.message} options={GENDER_OPTIONS} {...register('gender')} />
             <Select label="রক্তের গ্রুপ (ঐচ্ছিক)" error={errors.blood_group?.message} options={BLOOD_GROUP_OPTIONS} {...register('blood_group')} />
             <Input label="ঠিকানা" error={errors.address?.message} {...register('address')} />
-          </div>
-
-          <div className="rounded-xl bg-green-50 border border-green-200 p-3.5 space-y-3">
-            <div className="flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-green-600 flex-shrink-0" />
-              <p className="text-xs font-semibold text-green-700">লগইন তথ্য</p>
-            </div>
-            <Input
-              label="পাসওয়ার্ড"
-              type="password"
-              placeholder={editPathologist ? 'নতুন পাসওয়ার্ড (খালি রাখলে পরিবর্তন হবে না)' : 'কমপক্ষে ৬ অক্ষর'}
-              hint={editPathologist ? undefined : 'প্যাথলজিস্ট এই পাসওয়ার্ড দিয়ে লগইন করবেন'}
-              error={errors.password?.message}
-              {...register('password')}
-            />
           </div>
 
           <Input label="বিশেষজ্ঞতা" error={errors.specialization?.message} {...register('specialization')} />
@@ -256,11 +211,11 @@ export default function PathologistsPage() {
             {...register('status')}
           />
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="ghost" onClick={() => { setModalOpen(false); setEditPathologist(null); reset() }}>
+            <Button type="button" variant="ghost" onClick={() => { setEditPathologist(null); reset() }}>
               বাতিল
             </Button>
-            <Button type="submit" loading={addMutation.isPending || updateMutation.isPending}>
-              {editPathologist ? 'আপডেট করুন' : 'যোগ করুন'}
+            <Button type="submit" loading={updateMutation.isPending}>
+              আপডেট করুন
             </Button>
           </div>
         </form>
@@ -273,6 +228,17 @@ export default function PathologistsPage() {
         title="প্যাথলজিস্ট মুছুন"
         message="আপনি কি এই প্যাথলজিস্টকে মুছে ফেলতে চান? তার লগইন অ্যাক্সেসও বাতিল হয়ে যাবে।"
         isLoading={deleteMutation.isPending}
+      />
+
+      <StaffImportModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        roleLabel="প্যাথলজিস্ট"
+        queryKeyPrefix="pathologist"
+        extraFieldLabel="বিশেষজ্ঞতা (ঐচ্ছিক)"
+        search={api.owner.searchAvailablePathologists}
+        doImport={api.owner.importPathologist}
+        onImported={() => queryClient.invalidateQueries({ queryKey: ['pathologists', hospitalId] })}
       />
     </div>
   )

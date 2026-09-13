@@ -17,7 +17,7 @@ import { Table, TableHead, TableBody, TableRow, TableCell } from '@/components/u
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { StaffImportModal } from '@/components/shared/staff-import-modal'
 import { formatDate } from '@/lib/utils'
-import { Plus, Pencil, Trash2, UserPlus } from 'lucide-react'
+import { Pencil, Trash2, UserPlus } from 'lucide-react'
 import type { Nurse } from '@/types'
 
 const nurseSchema = z.object({
@@ -45,7 +45,6 @@ export default function NursesPage() {
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
   const queryClient = useQueryClient()
-  const [modalOpen, setModalOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [editNurse, setEditNurse] = useState<Nurse | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -60,20 +59,10 @@ export default function NursesPage() {
     defaultValues: { status: 'Active' },
   })
 
-  const addMutation = useMutation({
-    mutationFn: (data: NurseForm) => api.owner.addNurse(hospitalId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['nurses', hospitalId] })
-      setModalOpen(false)
-      reset()
-    },
-  })
-
   const updateMutation = useMutation({
     mutationFn: (data: NurseForm) => api.owner.updateNurse(editNurse!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['nurses', hospitalId] })
-      setModalOpen(false)
       setEditNurse(null)
       reset()
     },
@@ -87,24 +76,9 @@ export default function NursesPage() {
     },
   })
 
-  const handleOpenAdd = () => {
-    reset({ status: 'Active' })
-    setEditNurse(null)
-    setModalOpen(true)
-  }
-
   const handleOpenEdit = (n: Nurse) => {
     reset({ name: n.name, phone: n.phone, ward: n.ward, status: n.status })
     setEditNurse(n)
-    setModalOpen(true)
-  }
-
-  const onSubmit = (data: NurseForm) => {
-    if (editNurse) {
-      updateMutation.mutate(data)
-    } else {
-      addMutation.mutate(data)
-    }
   }
 
   if (isLoading) return <LoadingSpinner />
@@ -116,16 +90,14 @@ export default function NursesPage() {
           <h2 className="text-xl font-bold text-slate-900">নার্স ব্যবস্থাপনা</h2>
           <p className="text-sm text-slate-500 mt-0.5">মোট {nurses.length}জন নার্স</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setImportOpen(true)}>
-            <UserPlus className="w-4 h-4" />
-            আবেদনকারী থেকে যুক্ত করুন
-          </Button>
-          <Button onClick={handleOpenAdd}>
-            <Plus className="w-4 h-4" />
-            নার্স যোগ করুন
-          </Button>
-        </div>
+        <Button onClick={() => setImportOpen(true)}>
+          <UserPlus className="w-4 h-4" />
+          আবেদনকারী থেকে যুক্ত করুন
+        </Button>
+      </div>
+
+      <div className="flex items-start gap-2 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700">
+        নার্স শুধু অ্যাডমিন-অনুমোদিত আবেদনকারীদের তালিকা থেকেই যুক্ত করা যায় — সরাসরি নতুন নার্স তৈরি করা যায় না।
       </div>
 
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -190,12 +162,12 @@ export default function NursesPage() {
       </div>
 
       <Modal
-        isOpen={modalOpen}
-        onClose={() => { setModalOpen(false); setEditNurse(null); reset() }}
-        title={editNurse ? 'নার্স সম্পাদনা' : 'নার্স যোগ করুন'}
+        isOpen={!!editNurse}
+        onClose={() => { setEditNurse(null); reset() }}
+        title="নার্স সম্পাদনা"
         size="sm"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(data => updateMutation.mutate(data))} className="space-y-4">
           <Input label="নাম" error={errors.name?.message} {...register('name')} />
           <Input label="ফোন নম্বর" error={errors.phone?.message} {...register('phone')} />
           <Input label="ওয়ার্ড" error={errors.ward?.message} {...register('ward')} />
@@ -210,11 +182,11 @@ export default function NursesPage() {
             {...register('status')}
           />
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={() => { setModalOpen(false); setEditNurse(null); reset() }}>
+            <Button type="button" variant="outline" onClick={() => { setEditNurse(null); reset() }}>
               বাতিল
             </Button>
-            <Button type="submit" loading={addMutation.isPending || updateMutation.isPending}>
-              {editNurse ? 'আপডেট করুন' : 'যোগ করুন'}
+            <Button type="submit" loading={updateMutation.isPending}>
+              আপডেট করুন
             </Button>
           </div>
         </form>
