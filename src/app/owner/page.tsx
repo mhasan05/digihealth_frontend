@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth-store'
 import { api } from '@/lib/api'
@@ -12,6 +13,7 @@ import {
 import { cn, formatCurrency } from '@/lib/utils'
 
 function FinancialKpi({ label, value, trend, color }: { label: string; value: number; trend: number; color: string }) {
+  const { t } = useTranslation()
   const isUp = trend >= 0
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
@@ -19,13 +21,14 @@ function FinancialKpi({ label, value, trend, color }: { label: string; value: nu
       <p className={cn('text-2xl font-extrabold tracking-tight', color)}>{formatCurrency(value)}</p>
       <div className={cn('flex items-center gap-1 mt-2 text-xs font-semibold', isUp ? 'text-emerald-600' : 'text-red-500')}>
         {isUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-        {Math.abs(trend)}% vs last month
+        {Math.abs(trend)}% {t('ownerDashboard.vsLastMonth')}
       </div>
     </div>
   )
 }
 
 function BedBar({ available, total }: { available: number; total: number }) {
+  const { t } = useTranslation()
   const occupied = total - available
   const rate = total > 0 ? Math.round((occupied / total) * 100) : 0
   const color = rate >= 90 ? 'bg-red-500' : rate >= 70 ? 'bg-amber-500' : 'bg-emerald-500'
@@ -40,8 +43,8 @@ function BedBar({ available, total }: { available: number; total: number }) {
         </div>
         <span className={cn('text-2xl font-extrabold', textColor)}>{rate}%</span>
       </div>
-      <p className="text-sm font-semibold text-slate-800">Bed Occupancy</p>
-      <p className="text-xs text-slate-400 mt-0.5">{occupied} occupied · {available} available · {total} total</p>
+      <p className="text-sm font-semibold text-slate-800">{t('page.bedOccupancy')}</p>
+      <p className="text-xs text-slate-400 mt-0.5">{occupied} {t('ownerDashboard.occupied')} · {available} {t('ownerDashboard.available')} · {total} {t('ownerDashboard.total')}</p>
       <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
         <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${rate}%` }} />
       </div>
@@ -75,6 +78,7 @@ function StaffCard({ title, rows }: { title: string; rows: StaffRowItem[] }) {
 }
 
 export default function OwnerDashboard() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
 
@@ -94,17 +98,17 @@ export default function OwnerDashboard() {
             <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
               <Building2 className="w-4 h-4 text-blue-600" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">Owner Dashboard</h2>
+            <h2 className="text-xl font-bold text-slate-900">{t('page.ownerDashboard')}</h2>
           </div>
-          <p className="text-sm text-slate-500 ml-9">Hospital performance overview</p>
+          <p className="text-sm text-slate-500 ml-9">{t('ownerDashboard.subtitle')}</p>
         </div>
       </div>
 
       {/* Financial KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <FinancialKpi label="Current Revenue" value={data.current_revenue} trend={data.revenue_trend} color="text-blue-700" />
-        <FinancialKpi label="Current Expenses" value={data.current_expenses} trend={0} color="text-slate-700" />
-        <FinancialKpi label="Net Profit" value={data.current_profit} trend={data.profit_trend} color="text-emerald-700" />
+        <FinancialKpi label={t('ownerDashboard.currentRevenue')} value={data.current_revenue} trend={data.revenue_trend} color="text-blue-700" />
+        <FinancialKpi label={t('ownerDashboard.currentExpenses')} value={data.current_expenses} trend={0} color="text-slate-700" />
+        <FinancialKpi label={t('ownerDashboard.netProfit')} value={data.current_profit} trend={data.profit_trend} color="text-emerald-700" />
       </div>
 
       {/* Revenue chart */}
@@ -115,18 +119,18 @@ export default function OwnerDashboard() {
         <BedBar available={data.beds_available} total={data.beds_total} />
 
         <StaffCard
-          title="Medical Staff"
+          title={t('ownerDashboard.medicalStaff')}
           rows={[
-            { icon: Stethoscope, label: 'Doctors',   count: data.doctors_count,   bg: 'bg-violet-50', iconColor: 'text-violet-600' },
-            { icon: Activity,    label: 'Nurses',    count: data.nurses_count,    bg: 'bg-pink-50',   iconColor: 'text-pink-600'   },
+            { icon: Stethoscope, label: t('nav.doctors'), count: data.doctors_count,   bg: 'bg-violet-50', iconColor: 'text-violet-600' },
+            { icon: Activity,    label: t('nav.nurses'),  count: data.nurses_count,    bg: 'bg-pink-50',   iconColor: 'text-pink-600'   },
           ]}
         />
 
         <StaffCard
-          title="Operations Staff"
+          title={t('ownerDashboard.operationsStaff')}
           rows={[
-            { icon: UserCheck,  label: 'Managers',     count: data.managers_count,     bg: 'bg-teal-50',   iconColor: 'text-teal-600'   },
-            { icon: Microscope, label: 'Pathologists', count: data.pathologists_count, bg: 'bg-amber-50',  iconColor: 'text-amber-600'  },
+            { icon: UserCheck,  label: t('nav.managers'),     count: data.managers_count,     bg: 'bg-teal-50',   iconColor: 'text-teal-600'   },
+            { icon: Microscope, label: t('nav.pathologists'), count: data.pathologists_count, bg: 'bg-amber-50',  iconColor: 'text-amber-600'  },
           ]}
         />
 
@@ -137,10 +141,10 @@ export default function OwnerDashboard() {
             </div>
             <span className="text-2xl font-extrabold text-sky-700">{data.active_tests}</span>
           </div>
-          <p className="text-sm font-semibold text-slate-800">Active Lab Tests</p>
-          <p className="text-xs text-slate-400 mt-0.5">Available for patients</p>
+          <p className="text-sm font-semibold text-slate-800">{t('ownerDashboard.activeLabTests')}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{t('ownerDashboard.availableForPatients')}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {['Blood', 'Urine', 'X-Ray', 'More…'].map(tag => (
+            {[t('ownerDashboard.tagBlood'), t('ownerDashboard.tagUrine'), t('ownerDashboard.tagXray'), t('ownerDashboard.tagMore')].map(tag => (
               <span key={tag} className="text-[10px] font-medium text-sky-700 bg-sky-50 border border-sky-100 px-2 py-0.5 rounded-full">
                 {tag}
               </span>

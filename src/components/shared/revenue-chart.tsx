@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import type { MonthlyFinancial } from '@/types'
 
-function fTaka(v: number) {
-  if (v >= 1_000_000) return `৳${(v / 1_000_000).toFixed(2)} মি`
-  if (v >= 100_000)   return `৳${(v / 100_000).toFixed(1)} লাখ`
+function fTaka(v: number, millionAbbr: string, lakhAbbr: string) {
+  if (v >= 1_000_000) return `৳${(v / 1_000_000).toFixed(2)} ${millionAbbr}`
+  if (v >= 100_000)   return `৳${(v / 100_000).toFixed(1)} ${lakhAbbr}`
   return `৳${(v / 1_000).toFixed(0)}k`
 }
 function fShort(v: number) {
@@ -22,12 +23,6 @@ const CH = H - PT - PB
 
 type Metric = 'revenue' | 'profit' | 'both'
 interface Props { data: MonthlyFinancial[] }
-
-const METRIC_BTNS: { key: Metric; label: string }[] = [
-  { key: 'revenue', label: 'আয়'    },
-  { key: 'profit',  label: 'মুনাফা' },
-  { key: 'both',    label: 'উভয়'   },
-]
 
 function buildLine(pts: { x: number; y: number }[]): string {
   if (pts.length < 2) return ''
@@ -45,6 +40,12 @@ function buildArea(pts: { x: number; y: number }[], bottom: number): string {
 }
 
 export function RevenueChart({ data }: Props) {
+  const { t } = useTranslation()
+  const METRIC_BTNS: { key: Metric; label: string }[] = [
+    { key: 'revenue', label: t('revenueChart.revenue') },
+    { key: 'profit',  label: t('revenueChart.profit')  },
+    { key: 'both',    label: t('revenueChart.both')    },
+  ]
   const [metric, setMetric]   = useState<Metric>('both')
   const [hovered, setHovered] = useState<number | null>(null)
 
@@ -91,25 +92,25 @@ export function RevenueChart({ data }: Props) {
         {/* KPIs */}
         <div className="flex items-start gap-8">
           <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">মোট আয়</p>
-            <p className="text-xl font-extrabold text-slate-900 tracking-tight">{fTaka(totalRev)}</p>
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{t('revenueChart.totalRevenue')}</p>
+            <p className="text-xl font-extrabold text-slate-900 tracking-tight">{fTaka(totalRev, t('revenueChart.millionAbbr'), t('revenueChart.lakhAbbr'))}</p>
             <div className={`inline-flex items-center gap-1 mt-1 text-[11px] font-semibold ${revTrend >= 0 ? 'text-green-600' : 'text-red-500'}`}>
               {revTrend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-              {Math.abs(revTrend)}% গত মাস থেকে
+              {Math.abs(revTrend)}% {t('revenueChart.fromLastMonth')}
             </div>
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">নিট মুনাফা</p>
-            <p className="text-xl font-extrabold text-slate-900 tracking-tight">{fTaka(totalProf)}</p>
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{t('revenueChart.netProfit')}</p>
+            <p className="text-xl font-extrabold text-slate-900 tracking-tight">{fTaka(totalProf, t('revenueChart.millionAbbr'), t('revenueChart.lakhAbbr'))}</p>
             <div className={`inline-flex items-center gap-1 mt-1 text-[11px] font-semibold ${profTrend >= 0 ? 'text-sky-600' : 'text-red-500'}`}>
               {profTrend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-              {Math.abs(profTrend)}% গত মাস থেকে
+              {Math.abs(profTrend)}% {t('revenueChart.fromLastMonth')}
             </div>
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">গড় মার্জিন</p>
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{t('revenueChart.avgMargin')}</p>
             <p className="text-xl font-extrabold text-slate-900 tracking-tight">{avgMargin}%</p>
-            <p className="text-[11px] text-slate-400 mt-1">গত ১২ মাস</p>
+            <p className="text-[11px] text-slate-400 mt-1">{t('revenueChart.last12Months')}</p>
           </div>
         </div>
 
@@ -257,28 +258,28 @@ export function RevenueChart({ data }: Props) {
                   {(metric === 'revenue' || metric === 'both') && (
                     <div className="flex items-center justify-between gap-5">
                       <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                        <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />আয়
+                        <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />{t('revenueChart.revenue')}
                       </span>
-                      <span className="text-xs font-bold text-white">{fTaka(hd.revenue)}</span>
+                      <span className="text-xs font-bold text-white">{fTaka(hd.revenue, t('revenueChart.millionAbbr'), t('revenueChart.lakhAbbr'))}</span>
                     </div>
                   )}
                   {(metric === 'profit' || metric === 'both') && (
                     <div className="flex items-center justify-between gap-5">
                       <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                        <span className="w-2 h-2 rounded-full bg-sky-400 inline-block" />মুনাফা
+                        <span className="w-2 h-2 rounded-full bg-sky-400 inline-block" />{t('revenueChart.profit')}
                       </span>
-                      <span className="text-xs font-bold text-white">{fTaka(hd.profit)}</span>
+                      <span className="text-xs font-bold text-white">{fTaka(hd.profit, t('revenueChart.millionAbbr'), t('revenueChart.lakhAbbr'))}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between gap-5">
                     <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                      <span className="w-2 h-2 rounded-sm bg-slate-600 inline-block" />ব্যয়
+                      <span className="w-2 h-2 rounded-sm bg-slate-600 inline-block" />{t('revenueChart.expenses')}
                     </span>
-                    <span className="text-xs font-bold text-slate-300">{fTaka(hd.expenses)}</span>
+                    <span className="text-xs font-bold text-slate-300">{fTaka(hd.expenses, t('revenueChart.millionAbbr'), t('revenueChart.lakhAbbr'))}</span>
                   </div>
                 </div>
                 <div className="mt-2.5 pt-2 border-t border-slate-700 flex justify-between">
-                  <span className="text-[11px] text-slate-400">মার্জিন</span>
+                  <span className="text-[11px] text-slate-400">{t('revenueChart.margin')}</span>
                   <span className="text-xs font-extrabold text-green-400">{mg}%</span>
                 </div>
               </div>
@@ -292,13 +293,13 @@ export function RevenueChart({ data }: Props) {
         {(metric === 'revenue' || metric === 'both') && (
           <div className="flex items-center gap-2">
             <svg width="20" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" /></svg>
-            <span className="text-xs text-slate-500 font-medium">মোট আয়</span>
+            <span className="text-xs text-slate-500 font-medium">{t('revenueChart.totalRevenue')}</span>
           </div>
         )}
         {(metric === 'profit' || metric === 'both') && (
           <div className="flex items-center gap-2">
             <svg width="20" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="#0ea5e9" strokeWidth="2.5" strokeLinecap="round" /></svg>
-            <span className="text-xs text-slate-500 font-medium">নিট মুনাফা</span>
+            <span className="text-xs text-slate-500 font-medium">{t('revenueChart.netProfit')}</span>
           </div>
         )}
       </div>

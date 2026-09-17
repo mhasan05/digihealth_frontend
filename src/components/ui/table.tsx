@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { FileSearch } from 'lucide-react'
 
 interface TableProps {
@@ -43,7 +44,8 @@ export function TableHead({ columns }: TableHeadProps) {
   )
 }
 
-export function TableBody({ children, isEmpty, emptyMessage = 'কোনো তথ্য নেই', colSpan = 6 }: TableBodyProps) {
+export function TableBody({ children, isEmpty, emptyMessage, colSpan = 6 }: TableBodyProps) {
+  const { t } = useTranslation()
   if (isEmpty) {
     return (
       <tbody>
@@ -53,7 +55,7 @@ export function TableBody({ children, isEmpty, emptyMessage = 'কোনো ত�
               <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
                 <FileSearch className="w-6 h-6 text-slate-400" />
               </div>
-              <p className="text-sm font-medium text-slate-500">{emptyMessage}</p>
+              <p className="text-sm font-medium text-slate-500">{emptyMessage ?? t('common.noData')}</p>
             </div>
           </td>
         </tr>
@@ -82,11 +84,12 @@ interface PaginationProps {
 }
 
 export function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
+  const { t } = useTranslation()
   if (totalPages <= 1) return null
   return (
     <div className="flex items-center justify-between px-5 py-3.5 border-t border-slate-100 bg-white rounded-b-2xl">
       <p className="text-xs text-slate-500 font-medium">
-        পাতা <span className="text-slate-800">{currentPage}</span> / <span className="text-slate-800">{totalPages}</span>
+        {t('common.page')} <span className="text-slate-800">{currentPage}</span> / <span className="text-slate-800">{totalPages}</span>
       </p>
       <div className="flex gap-2">
         <button
@@ -94,14 +97,14 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
           disabled={currentPage === 1}
           className="px-3 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 hover:border-slate-400 transition-all"
         >
-          ← পূর্ববর্তী
+          ← {t('common.previous')}
         </button>
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
           className="px-3 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 hover:border-slate-400 transition-all"
         >
-          পরবর্তী →
+          {t('common.next')} →
         </button>
       </div>
     </div>

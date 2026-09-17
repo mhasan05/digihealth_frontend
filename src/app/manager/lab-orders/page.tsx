@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,29 +23,6 @@ import type { LabOrder, LabResult, Patient, Doctor, Pathologist } from '@/types'
 
 type Tab = 'all' | 'Pending' | 'Assigned' | 'Completed' | 'Cancelled'
 
-const tabs: { id: Tab; label: string }[] = [
-  { id: 'all', label: 'সব' },
-  { id: 'Pending', label: 'মুলতুবি' },
-  { id: 'Assigned', label: 'নির্ধারিত' },
-  { id: 'Completed', label: 'সম্পন্ন' },
-  { id: 'Cancelled', label: 'বাতিল' },
-]
-
-const newOrderSchema = z.object({
-  patient_id:     z.string().min(1, 'রোগী নির্বাচন করুন'),
-  test_id:        z.string().min(1, 'পরীক্ষা নির্বাচন করুন'),
-  doctor_id:      z.string().optional(),
-  pathologist_id: z.string().optional(),
-})
-
-type NewOrderForm = z.infer<typeof newOrderSchema>
-
-const assignSchema = z.object({
-  pathologist_id: z.string().min(1, 'প্যাথলজিস্ট নির্বাচন করুন'),
-})
-
-type AssignForm = z.infer<typeof assignSchema>
-
 // ── Patient Search ────────────────────────────────────────────────────────────
 function PatientSearch({
   patients, selected, onSelect, onClear, error,
@@ -55,6 +33,7 @@ function PatientSearch({
   onClear: () => void
   error?: string
 }) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [open, setOpen]   = useState(false)
   const wrapRef           = useRef<HTMLDivElement>(null)
@@ -78,7 +57,7 @@ function PatientSearch({
   if (selected) {
     return (
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">রোগী</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('labOrderPage.patientLabel')}</label>
         <div className="flex items-center justify-between px-4 py-3 bg-green-50 border border-green-200 rounded-xl">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
@@ -91,7 +70,7 @@ function PatientSearch({
           </div>
           <button type="button" onClick={onClear}
             className="text-xs font-medium text-green-600 hover:text-green-800 transition-colors">
-            পরিবর্তন
+            {t('labOrderPage.change')}
           </button>
         </div>
       </div>
@@ -100,7 +79,7 @@ function PatientSearch({
 
   return (
     <div ref={wrapRef}>
-      <label className="block text-sm font-medium text-slate-700 mb-1.5">রোগী খুঁজুন</label>
+      <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('labOrderPage.searchPatient')}</label>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
         <input
@@ -108,7 +87,7 @@ function PatientSearch({
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          placeholder="ফোন নম্বর, নাম বা হেলথ আইডি দিয়ে খুঁজুন..."
+          placeholder={t('labOrderPage.searchPatientPlaceholder')}
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all"
         />
         {open && results.length > 0 && (
@@ -129,7 +108,7 @@ function PatientSearch({
           </div>
         )}
         {open && query.length >= 2 && results.length === 0 && (
-          <p className="mt-1.5 text-xs text-slate-400 pl-1">কোনো রোগী পাওয়া যায়নি</p>
+          <p className="mt-1.5 text-xs text-slate-400 pl-1">{t('labOrderPage.noPatientFound')}</p>
         )}
       </div>
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
@@ -138,6 +117,7 @@ function PatientSearch({
 }
 
 export default function LabOrdersPage() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
   const queryClient = useQueryClient()
@@ -150,6 +130,27 @@ export default function LabOrdersPage() {
   const [selectedDoctor,   setSelectedDoctor]   = useState<Doctor | null>(null)
   const [selectedPathologist, setSelectedPathologist] = useState<(Pathologist & { active_test_count?: number }) | null>(null)
   const [assignSelected, setAssignSelected] = useState<(Pathologist & { active_test_count?: number }) | null>(null)
+
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'all', label: t('labOrderPage.tabAll') },
+    { id: 'Pending', label: t('labOrderPage.tabPending') },
+    { id: 'Assigned', label: t('labOrderPage.tabAssigned') },
+    { id: 'Completed', label: t('labOrderPage.tabCompleted') },
+    { id: 'Cancelled', label: t('labOrderPage.tabCancelled') },
+  ]
+
+  const newOrderSchema = useMemo(() => z.object({
+    patient_id:     z.string().min(1, t('labOrderPage.selectPatient')),
+    test_id:        z.string().min(1, t('labOrderPage.selectTest')),
+    doctor_id:      z.string().optional(),
+    pathologist_id: z.string().optional(),
+  }), [t])
+  type NewOrderForm = z.infer<typeof newOrderSchema>
+
+  const assignSchema = useMemo(() => z.object({
+    pathologist_id: z.string().min(1, t('labOrderPage.selectPathologist')),
+  }), [t])
+  type AssignForm = z.infer<typeof assignSchema>
 
   const { data: labOrders = [], isLoading } = useQuery({
     queryKey: ['lab-orders', hospitalId],
@@ -182,7 +183,7 @@ export default function LabOrdersPage() {
   const createMutation = useMutation({
     mutationFn: (data: NewOrderForm) => {
       const patient = patients.find(p => p.id === data.patient_id)!
-      const test = labTests.find(t => t.id === data.test_id)!
+      const test = labTests.find(lt => lt.id === data.test_id)!
       const doctor = data.doctor_id ? doctors.find(d => d.id === data.doctor_id) : null
       return api.manager.createLabOrder(hospitalId, {
         patient_id: data.patient_id,
@@ -264,12 +265,12 @@ export default function LabOrdersPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">ল্যাব অর্ডার ব্যবস্থাপনা</h2>
-          <p className="text-sm text-slate-500 mt-0.5">মোট {labOrders.length}টি অর্ডার</p>
+          <h2 className="text-xl font-bold text-slate-900">{t('labOrderPage.title')}</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{t('labOrderPage.totalCount', { count: labOrders.length })}</p>
         </div>
         <Button onClick={() => { closeCreateModal(); setCreateOpen(true) }}>
           <Plus className="w-4 h-4" />
-          নতুন অর্ডার
+          {t('labOrderPage.newOrder')}
         </Button>
       </div>
 
@@ -296,8 +297,15 @@ export default function LabOrdersPage() {
 
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <Table>
-          <TableHead columns={['রোগী', 'পরীক্ষা', 'ডাক্তার', 'প্যাথলজিস্ট', 'স্ট্যাটাস', 'কার্যক্রম']} />
-          <TableBody isEmpty={filtered.length === 0} emptyMessage="কোনো অর্ডার নেই" colSpan={6}>
+          <TableHead columns={[
+            t('labOrderPage.colPatient'),
+            t('labOrderPage.colTest'),
+            t('labOrderPage.colDoctor'),
+            t('labOrderPage.colPathologist'),
+            t('common.status'),
+            t('common.actions'),
+          ]} />
+          <TableBody isEmpty={filtered.length === 0} emptyMessage={t('labOrderPage.noOrders')} colSpan={6}>
             {filtered.map((lo) => (
               <TableRow key={lo.id}>
                 <TableCell><span className="font-medium">{lo.patient_name}</span></TableCell>
@@ -307,7 +315,7 @@ export default function LabOrdersPage() {
                   {lo.assigned_pathologist_name ? (
                     <span className="text-sm text-slate-700">{lo.assigned_pathologist_name}</span>
                   ) : (
-                    <span className="text-xs text-slate-400">নির্ধারিত হয়নি</span>
+                    <span className="text-xs text-slate-400">{t('labOrderPage.notAssignedYet')}</span>
                   )}
                 </TableCell>
                 <TableCell><StatusBadge status={lo.status} /></TableCell>
@@ -318,14 +326,14 @@ export default function LabOrdersPage() {
                         <button
                           onClick={() => { assignForm.reset(); setAssignSelected(null); setAssignOrder(lo) }}
                           className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                          title="প্যাথলজিস্ট নির্ধারণ করুন"
+                          title={t('labOrderPage.assignPathologistTitle')}
                         >
                           <UserCheck className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setCancelId(lo.id)}
                           className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="বাতিল করুন"
+                          title={t('labOrderPage.cancelOrder')}
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -335,7 +343,7 @@ export default function LabOrdersPage() {
                       <button
                         onClick={() => handleViewResult(lo.id)}
                         className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
-                        title="ফলাফল দেখুন"
+                        title={t('labOrderPage.viewResult')}
                       >
                         <Eye className="w-4 h-4" />
                       </button>
@@ -355,9 +363,9 @@ export default function LabOrdersPage() {
               <div>
                 <p className="font-semibold text-slate-900">{lo.patient_name}</p>
                 <p className="text-sm text-slate-500">{lo.test_name}</p>
-                <p className="text-xs text-slate-400 mt-1">ডাক্তার: {lo.ordered_by_doctor_name}</p>
+                <p className="text-xs text-slate-400 mt-1">{t('labOrderPage.doctorLabel')}: {lo.ordered_by_doctor_name}</p>
                 {lo.assigned_pathologist_name && (
-                  <p className="text-xs text-slate-400">প্যাথলজিস্ট: {lo.assigned_pathologist_name}</p>
+                  <p className="text-xs text-slate-400">{t('labOrderPage.pathologistLabel')}: {lo.assigned_pathologist_name}</p>
                 )}
                 <div className="mt-2">
                   <StatusBadge status={lo.status} />
@@ -389,7 +397,7 @@ export default function LabOrdersPage() {
       <Modal
         isOpen={createOpen}
         onClose={closeCreateModal}
-        title="নতুন ল্যাব অর্ডার"
+        title={t('labOrderPage.newOrderTitle')}
         size="sm"
       >
         <form onSubmit={newOrderForm.handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
@@ -401,10 +409,10 @@ export default function LabOrdersPage() {
             error={newOrderForm.formState.errors.patient_id?.message}
           />
           <Select
-            label="পরীক্ষা"
+            label={t('labOrderPage.test')}
             error={newOrderForm.formState.errors.test_id?.message}
-            options={labTests.filter(t => t.available).map(t => ({ value: t.id, label: `${t.name}${t.price ? ` · ৳${t.price}` : ''}` }))}
-            placeholder={labTests.length === 0 ? 'কোনো পরীক্ষা নেই · Owner থেকে যোগ করুন' : 'পরীক্ষা নির্বাচন করুন'}
+            options={labTests.filter(lt => lt.available).map(lt => ({ value: lt.id, label: `${lt.name}${lt.price ? ` · ৳${lt.price}` : ''}` }))}
+            placeholder={labTests.length === 0 ? t('labOrderPage.noTestsAddFromOwner') : t('labOrderPage.selectTestPlaceholder')}
             {...newOrderForm.register('test_id')}
           />
           <DoctorSearch
@@ -423,8 +431,8 @@ export default function LabOrdersPage() {
             optional
           />
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={closeCreateModal}>বাতিল</Button>
-            <Button type="submit" loading={createMutation.isPending}>অর্ডার করুন</Button>
+            <Button type="button" variant="outline" onClick={closeCreateModal}>{t('common.cancel')}</Button>
+            <Button type="submit" loading={createMutation.isPending}>{t('labOrderPage.newOrder')}</Button>
           </div>
         </form>
       </Modal>
@@ -433,14 +441,14 @@ export default function LabOrdersPage() {
       <Modal
         isOpen={!!assignOrder}
         onClose={() => { setAssignOrder(null); setAssignSelected(null); assignForm.reset() }}
-        title="প্যাথলজিস্ট নির্ধারণ"
+        title={t('labOrderPage.assignPathologistTitle')}
         size="sm"
       >
         {assignOrder && (
           <div className="space-y-4">
             <div className="bg-green-50 rounded-lg p-3 text-sm text-green-800">
-              <p><span className="font-medium">রোগী:</span> {assignOrder.patient_name}</p>
-              <p><span className="font-medium">পরীক্ষা:</span> {assignOrder.test_name}</p>
+              <p><span className="font-medium">{t('labOrderPage.patientColon')}</span> {assignOrder.patient_name}</p>
+              <p><span className="font-medium">{t('labOrderPage.testColon')}</span> {assignOrder.test_name}</p>
             </div>
             <form onSubmit={assignForm.handleSubmit((d) => assignMutation.mutate(d))} className="space-y-4">
               <PathologistSearch
@@ -451,8 +459,8 @@ export default function LabOrdersPage() {
                 error={assignForm.formState.errors.pathologist_id?.message}
               />
               <div className="flex justify-end gap-3 pt-2">
-                <Button type="button" variant="outline" onClick={() => { setAssignOrder(null); setAssignSelected(null); assignForm.reset() }}>বাতিল</Button>
-                <Button type="submit" loading={assignMutation.isPending}>নির্ধারণ করুন</Button>
+                <Button type="button" variant="outline" onClick={() => { setAssignOrder(null); setAssignSelected(null); assignForm.reset() }}>{t('common.cancel')}</Button>
+                <Button type="submit" loading={assignMutation.isPending}>{t('labOrderPage.assign')}</Button>
               </div>
             </form>
           </div>
@@ -463,29 +471,29 @@ export default function LabOrdersPage() {
       <Modal
         isOpen={!!viewResult}
         onClose={() => setViewResult(null)}
-        title="ল্যাব ফলাফল"
+        title={t('labOrderPage.labResultTitle')}
         size="sm"
       >
         {viewResult && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-500">মন্তব্য</span>
+              <span className="text-sm text-slate-500">{t('labOrderPage.remarks')}</span>
               <Badge variant={remarkVariantMap[viewResult.remarks]}>
-                {viewResult.remarks === 'Normal' ? 'স্বাভাবিক'
-                  : viewResult.remarks === 'Abnormal' ? 'অস্বাভাবিক'
-                  : 'ফলো-আপ প্রয়োজন'}
+                {viewResult.remarks === 'Normal' ? t('labOrderPage.normal')
+                  : viewResult.remarks === 'Abnormal' ? t('labOrderPage.abnormal')
+                  : t('labOrderPage.followUpRequired')}
               </Badge>
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-700 mb-1">ফলাফল</p>
+              <p className="text-sm font-medium text-slate-700 mb-1">{t('labOrderPage.findings')}</p>
               <p className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3 whitespace-pre-wrap">{viewResult.findings}</p>
             </div>
             <div className="flex justify-between text-xs text-slate-400">
-              <span>জমা দিয়েছেন: {viewResult.submitted_by_name}</span>
+              <span>{t('labOrderPage.submittedBy')} {viewResult.submitted_by_name}</span>
               <span>{formatDate(viewResult.submitted_at)}</span>
             </div>
             <div className="flex justify-end pt-1">
-              <Button variant="outline" onClick={() => setViewResult(null)}>বন্ধ করুন</Button>
+              <Button variant="outline" onClick={() => setViewResult(null)}>{t('labOrderPage.close')}</Button>
             </div>
           </div>
         )}
@@ -495,11 +503,11 @@ export default function LabOrdersPage() {
         isOpen={!!cancelId}
         onClose={() => setCancelId(null)}
         onConfirm={() => cancelId && cancelMutation.mutate(cancelId)}
-        title="অর্ডার বাতিল করুন"
-        message="আপনি কি এই ল্যাব অর্ডারটি বাতিল করতে চান?"
+        title={t('labOrderPage.cancelOrderTitle')}
+        message={t('labOrderPage.cancelOrderConfirm')}
         tone="warning"
-        confirmLabel="হ্যাঁ, বাতিল করুন"
-        cancelLabel="না"
+        confirmLabel={t('labOrderPage.yesCancelIt')}
+        cancelLabel={t('labOrderPage.no')}
         isLoading={cancelMutation.isPending}
       />
     </div>

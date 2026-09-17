@@ -1,6 +1,7 @@
 "use client"
 
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { api } from '@/lib/api'
 import { SkeletonDashboard } from '@/components/ui/skeleton'
@@ -30,6 +31,7 @@ function StatCard({ icon: Icon, label, value, sub, color }: StatCardProps) {
 }
 
 export default function PathologistDashboard() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const pathologistId = user?.id ?? 'p1'
 
@@ -52,32 +54,32 @@ export default function PathologistDashboard() {
           <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
             <Microscope className="w-4 h-4 text-amber-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900">Pathologist Dashboard</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t('pathologistDashboard.title')}</h2>
         </div>
-        <p className="text-sm text-slate-500 ml-9">Your assigned test summary</p>
+        <p className="text-sm text-slate-500 ml-9">{t('pathologistDashboard.subtitle')}</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           icon={FlaskConical}
-          label="Assigned & Pending"
+          label={t('pathologistDashboard.assignedPending')}
           value={data.assigned_pending}
-          sub="Tests awaiting processing"
+          sub={t('pathologistDashboard.assignedPendingSub')}
           color={{ bg: 'bg-amber-50', icon: 'text-amber-600', value: 'text-amber-700', border: 'border-amber-100' }}
         />
         <StatCard
           icon={CheckCircle}
-          label="Completed Today"
+          label={t('pathologistDashboard.completedToday')}
           value={data.completed_today}
-          sub="Reports submitted today"
+          sub={t('pathologistDashboard.completedTodaySub')}
           color={{ bg: 'bg-emerald-50', icon: 'text-emerald-600', value: 'text-emerald-700', border: 'border-emerald-100' }}
         />
         <StatCard
           icon={ClipboardList}
-          label="Total Assigned"
+          label={t('pathologistDashboard.totalAssigned')}
           value={data.total_assigned}
-          sub="All-time assigned tests"
+          sub={t('pathologistDashboard.totalAssignedSub')}
           color={{ bg: 'bg-sky-50', icon: 'text-sky-600', value: 'text-sky-700', border: 'border-sky-100' }}
         />
       </div>
@@ -86,8 +88,8 @@ export default function PathologistDashboard() {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-sm font-bold text-slate-900">Today&apos;s Progress</p>
-            <p className="text-xs text-slate-400 mt-0.5">{data.completed_today} of {data.total_assigned} tests completed</p>
+            <p className="text-sm font-bold text-slate-900">{t('pathologistDashboard.todaysProgress')}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{t('pathologistDashboard.progressLine', { completed: data.completed_today, total: data.total_assigned })}</p>
           </div>
           <span className="text-2xl font-extrabold text-slate-900">{completionRate}%</span>
         </div>
@@ -103,7 +105,7 @@ export default function PathologistDashboard() {
             className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-sm font-semibold transition-colors border border-amber-100"
           >
             <FlaskConical className="w-4 h-4" />
-            Process Tests
+            {t('pathologistDashboard.processTests')}
             <ArrowRight className="w-3.5 h-3.5 ml-auto" />
           </Link>
           <Link
@@ -111,7 +113,7 @@ export default function PathologistDashboard() {
             className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold transition-colors border border-slate-100"
           >
             <CheckCircle className="w-4 h-4" />
-            View Reports
+            {t('pathologistDashboard.viewReports')}
             <ArrowRight className="w-3.5 h-3.5 ml-auto" />
           </Link>
         </div>

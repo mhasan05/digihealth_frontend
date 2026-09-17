@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,51 +13,46 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/badge'
 import { Table, TableHead, TableBody, TableRow, TableCell } from '@/components/ui/table'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { formatDate } from '@/lib/utils'
 import { Plus, Pencil, Trash2, KeyRound } from 'lucide-react'
 import type { Manager } from '@/types'
 
-const managerSchema = z.object({
-  name:        z.string().min(2, 'নাম দিন'),
-  phone:       z.string().min(11, 'ফোন নম্বর দিন'),
-  email:       z.string().email('সঠিক ইমেইল দিন'),
-  password:    z.string().optional(),
-  status:      z.enum(['Active', 'Inactive', 'On-leave']),
-  age:         z.coerce.number({ message: 'বয়স দিন' }).int().min(0).max(150),
-  gender:      z.enum(['Male', 'Female', 'Other'], { message: 'লিঙ্গ নির্বাচন করুন' }),
-  blood_group: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional().or(z.literal('')),
-  address:     z.string().min(1, 'ঠিকানা দিন'),
-})
-
-type ManagerForm = z.infer<typeof managerSchema>
-
-const GENDER_OPTIONS = [
-  { value: 'Male',   label: 'পুরুষ'    },
-  { value: 'Female', label: 'মহিলা'    },
-  { value: 'Other',  label: 'অন্যান্য' },
-]
-const BLOOD_GROUP_OPTIONS = [
-  { value: '', label: 'অজানা' },
-  ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
-]
-
-const statusVariant: Record<string, 'green' | 'gray' | 'amber'> = {
-  Active: 'green', Inactive: 'gray', 'On-leave': 'amber',
-}
-const statusLabel: Record<string, string> = {
-  Active: 'সক্রিয়', Inactive: 'নিষ্ক্রিয়', 'On-leave': 'ছুটিতে',
-}
-
 export default function ManagersPage() {
+  const { t } = useTranslation()
+  const roleLabel = t('role.manager')
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
   const queryClient = useQueryClient()
   const [modalOpen,   setModalOpen]   = useState(false)
   const [editManager, setEditManager] = useState<Manager | null>(null)
   const [deleteId,    setDeleteId]    = useState<string | null>(null)
+
+  const managerSchema = useMemo(() => z.object({
+    name:        z.string().min(2, t('settings.nameRequired')),
+    phone:       z.string().min(11, t('auth.validPhone')),
+    email:       z.string().email(t('settings.validEmail')),
+    password:    z.string().optional(),
+    status:      z.enum(['Active', 'Inactive', 'On-leave']),
+    age:         z.coerce.number({ message: t('pathologistPage.ageRequired') }).int().min(0).max(150),
+    gender:      z.enum(['Male', 'Female', 'Other'], { message: t('settings.selectGender') }),
+    blood_group: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional().or(z.literal('')),
+    address:     z.string().min(1, t('pathologistPage.addressRequired')),
+  }), [t])
+
+  type ManagerForm = z.infer<typeof managerSchema>
+
+  const GENDER_OPTIONS = [
+    { value: 'Male',   label: t('patient.male')   },
+    { value: 'Female', label: t('patient.female') },
+    { value: 'Other',  label: t('patient.other')  },
+  ]
+  const BLOOD_GROUP_OPTIONS = [
+    { value: '', label: t('settings.unknownBloodGroup') },
+    ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
+  ]
 
   const { data: managers = [], isLoading } = useQuery({
     queryKey: ['managers', hospitalId],
@@ -126,11 +122,11 @@ export default function ManagersPage() {
   const onSubmit = (data: ManagerForm) => {
     if (!editManager) {
       if (!data.password || data.password.length < 6) {
-        setError('password', { message: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে' })
+        setError('password', { message: t('auth.passwordMinLength') })
         return
       }
     } else if (data.password && data.password.length < 6) {
-      setError('password', { message: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে' })
+      setError('password', { message: t('auth.passwordMinLength') })
       return
     }
     if (editManager) {
@@ -146,20 +142,20 @@ export default function ManagersPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">ম্যানেজার ব্যবস্থাপনা</h2>
-          <p className="text-sm text-slate-500 mt-0.5">মোট {managers.length}জন ম্যানেজার</p>
+          <h2 className="text-xl font-bold text-slate-900">{t('managerPage.title')}</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{t('managerPage.totalCount', { count: managers.length })}</p>
         </div>
         <Button onClick={handleOpenAdd}>
           <Plus className="w-4 h-4" />
-          ম্যানেজার যোগ করুন
+          {t('managerPage.addManager')}
         </Button>
       </div>
 
       {/* Desktop table */}
       <div className="hidden md:block">
         <Table>
-          <TableHead columns={['নাম', 'ফোন', 'ইমেইল', 'স্ট্যাটাস', 'যোগদান', 'কার্যক্রম']} />
-          <TableBody isEmpty={managers.length === 0} emptyMessage="কোনো ম্যানেজার নেই" colSpan={6}>
+          <TableHead columns={[t('common.name'), t('common.phone'), t('common.email'), t('common.status'), t('staffPage.joined'), t('common.actions')]} />
+          <TableBody isEmpty={managers.length === 0} emptyMessage={t('managerPage.noManagers')} colSpan={6}>
             {managers.map((m) => (
               <TableRow key={m.id}>
                 <TableCell><span className="font-semibold text-slate-900">{m.name}</span></TableCell>
@@ -171,10 +167,10 @@ export default function ManagersPage() {
                       id: m.id,
                       status: m.status === 'Active' ? 'Inactive' : 'Active',
                     })}
-                    title="ক্লিক করে স্ট্যাটাস পরিবর্তন করুন"
+                    title={t('managerPage.toggleStatusHint')}
                     className="cursor-pointer"
                   >
-                    <Badge variant={statusVariant[m.status]} dot>{statusLabel[m.status]}</Badge>
+                    <StatusBadge status={m.status} />
                   </button>
                 </TableCell>
                 <TableCell>{formatDate(m.created_at)}</TableCell>
@@ -183,14 +179,14 @@ export default function ManagersPage() {
                     <button
                       onClick={() => handleOpenEdit(m)}
                       className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      aria-label="সম্পাদনা"
+                      aria-label={t('common.edit')}
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setDeleteId(m.id)}
                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      aria-label="মুছুন"
+                      aria-label={t('common.delete')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -215,7 +211,7 @@ export default function ManagersPage() {
                     id: m.id,
                     status: m.status === 'Active' ? 'Inactive' : 'Active',
                   })}>
-                    <Badge variant={statusVariant[m.status]} dot>{statusLabel[m.status]}</Badge>
+                    <StatusBadge status={m.status} />
                   </button>
                 </div>
               </div>
@@ -236,53 +232,53 @@ export default function ManagersPage() {
       <Modal
         isOpen={modalOpen}
         onClose={() => { setModalOpen(false); setEditManager(null); reset() }}
-        title={editManager ? 'ম্যানেজার সম্পাদনা' : 'ম্যানেজার যোগ করুন'}
-        subtitle={!editManager ? 'নতুন ম্যানেজার তৈরি হলে তিনি ফোন নম্বর ও পাসওয়ার্ড দিয়ে লগইন করতে পারবেন' : 'পাসওয়ার্ড পরিবর্তন করতে চাইলে নতুন পাসওয়ার্ড দিন, অন্যথায় খালি রাখুন'}
+        title={editManager ? t('staffPage.editTitle', { role: roleLabel }) : t('managerPage.addManager')}
+        subtitle={!editManager ? t('loginBox.createSubtitle', { role: roleLabel }) : t('loginBox.editSubtitle')}
         size="sm"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input label="নাম"        error={errors.name?.message}  {...register('name')} />
-          <Input label="ফোন নম্বর"  error={errors.phone?.message} {...register('phone')} />
-          <Input label="ইমেইল" type="email" error={errors.email?.message} {...register('email')} />
+          <Input label={t('common.name')}  error={errors.name?.message}  {...register('name')} />
+          <Input label={t('common.phone')} error={errors.phone?.message} {...register('phone')} />
+          <Input label={t('common.email')} type="email" error={errors.email?.message} {...register('email')} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input label="বয়স" type="number" error={errors.age?.message} {...register('age')} />
-            <Select label="লিঙ্গ" error={errors.gender?.message} options={GENDER_OPTIONS} {...register('gender')} />
-            <Select label="রক্তের গ্রুপ (ঐচ্ছিক)" error={errors.blood_group?.message} options={BLOOD_GROUP_OPTIONS} {...register('blood_group')} />
-            <Input label="ঠিকানা" error={errors.address?.message} {...register('address')} />
+            <Input label={t('patient.age')} type="number" error={errors.age?.message} {...register('age')} />
+            <Select label={t('patient.gender')} error={errors.gender?.message} options={GENDER_OPTIONS} {...register('gender')} />
+            <Select label={t('patient.bloodGroup')} error={errors.blood_group?.message} options={BLOOD_GROUP_OPTIONS} {...register('blood_group')} />
+            <Input label={t('common.address')} error={errors.address?.message} {...register('address')} />
           </div>
 
           <div className="rounded-xl bg-green-50 border border-green-200 p-3.5 space-y-3">
             <div className="flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-green-600 flex-shrink-0" />
-              <p className="text-xs font-semibold text-green-700">লগইন তথ্য</p>
+              <p className="text-xs font-semibold text-green-700">{t('loginBox.title')}</p>
             </div>
             <Input
-              label="পাসওয়ার্ড"
+              label={t('auth.password')}
               type="password"
-              placeholder={editManager ? 'নতুন পাসওয়ার্ড (খালি রাখলে পরিবর্তন হবে না)' : 'কমপক্ষে ৬ অক্ষর'}
-              hint={editManager ? undefined : 'ম্যানেজার এই পাসওয়ার্ড দিয়ে লগইন করবেন'}
+              placeholder={editManager ? t('loginBox.newPasswordPlaceholder') : t('loginBox.minCharsPlaceholder')}
+              hint={editManager ? undefined : t('loginBox.loginHint', { role: roleLabel })}
               error={errors.password?.message}
               {...register('password')}
             />
           </div>
 
           <Select
-            label="স্ট্যাটাস"
+            label={t('common.status')}
             error={errors.status?.message}
             options={[
-              { value: 'Active',   label: 'সক্রিয়'   },
-              { value: 'Inactive', label: 'নিষ্ক্রিয়' },
-              { value: 'On-leave', label: 'ছুটিতে'   },
+              { value: 'Active',   label: t('status.active')   },
+              { value: 'Inactive', label: t('status.inactive') },
+              { value: 'On-leave', label: t('status.onLeave')  },
             ]}
             {...register('status')}
           />
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={() => { setModalOpen(false); setEditManager(null); reset() }}>
-              বাতিল
+              {t('common.cancel')}
             </Button>
             <Button type="submit" loading={addMutation.isPending || updateMutation.isPending}>
-              {editManager ? 'আপডেট করুন' : 'যোগ করুন'}
+              {editManager ? t('staffPage.update') : t('common.add')}
             </Button>
           </div>
         </form>
@@ -292,8 +288,8 @@ export default function ManagersPage() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        title="ম্যানেজার মুছুন"
-        message="আপনি কি এই ম্যানেজারকে মুছে ফেলতে চান? তার লগইন অ্যাক্সেসও বাতিল হয়ে যাবে।"
+        title={t('staffPage.deleteTitle', { role: roleLabel })}
+        message={t('staffPage.deleteConfirmWithLogin', { role: roleLabel })}
         isLoading={deleteMutation.isPending}
       />
     </div>

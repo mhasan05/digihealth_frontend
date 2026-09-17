@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Search, User, Phone, IdCard, AlertTriangle } from 'lucide-react'
 import { PATIENT_CONDITIONS, type PatientCondition } from '@/types'
 
 export default function DoctorPatientsPage() {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -23,8 +25,8 @@ export default function DoctorPatientsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-900">রোগী খুঁজুন</h2>
-        <p className="text-sm text-slate-500 mt-0.5">নাম, ফোন নম্বর বা Health ID দিয়ে রোগীর প্রোফাইল খুঁজুন</p>
+        <h2 className="text-xl font-bold text-slate-900">{t('doctorPatientSearch.title')}</h2>
+        <p className="text-sm text-slate-500 mt-0.5">{t('doctorPatientSearch.subtitle')}</p>
       </div>
 
       <div className="relative">
@@ -34,7 +36,7 @@ export default function DoctorPatientsPage() {
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="যেমন: Rahim, 01700000001, DH-12345..."
+          placeholder={t('doctorPatientSearch.searchPlaceholder')}
           className="w-full pl-9 pr-4 py-3 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
         />
       </div>
@@ -42,16 +44,16 @@ export default function DoctorPatientsPage() {
       {query.trim().length < 1 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
           <Search className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-          <p className="text-sm text-slate-400">খুঁজতে শুরু করুন</p>
+          <p className="text-sm text-slate-400">{t('doctorPatientSearch.startSearching')}</p>
         </div>
       ) : isFetching ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-sm text-slate-400">
-          খুঁজছি...
+          {t('doctorPatientSearch.searching')}
         </div>
       ) : results.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
           <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-amber-400" />
-          <p className="text-sm text-slate-500">কোনো রোগী পাওয়া যায়নি।</p>
+          <p className="text-sm text-slate-500">{t('doctorPatientSearch.noPatientFound')}</p>
         </div>
       ) : (
         <ul className="space-y-3">
@@ -81,9 +83,9 @@ export default function DoctorPatientsPage() {
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-slate-500">
-                      <span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" />{p.phone ?? 'নেই'}</span>
+                      <span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" />{p.phone ?? t('doctorPatientSearch.noneShort')}</span>
                       <span className="inline-flex items-center gap-1 font-mono"><IdCard className="w-3 h-3" />{p.health_id}</span>
-                      <span>{p.age} বছর · {p.gender === 'Male' ? 'পুরুষ' : p.gender === 'Female' ? 'মহিলা' : 'অন্যান্য'}</span>
+                      <span>{p.age} {t('doctorPatientSearch.yearsOld')} · {p.gender === 'Male' ? t('patient.male') : p.gender === 'Female' ? t('patient.female') : t('patient.other')}</span>
                     </div>
                     {p.conditions && p.conditions.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1.5">
@@ -91,13 +93,13 @@ export default function DoctorPatientsPage() {
                           .filter(c => (p.conditions as PatientCondition[]).includes(c.value))
                           .map(c => (
                             <span key={c.value} className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 ring-1 ring-amber-200">
-                              {c.short}
+                              {t(c.shortKey)}
                             </span>
                           ))}
                       </div>
                     )}
                   </div>
-                  <span className="text-indigo-600 text-xs font-semibold whitespace-nowrap">দেখুন →</span>
+                  <span className="text-indigo-600 text-xs font-semibold whitespace-nowrap">{t('doctorPatientSearch.view')} →</span>
                 </div>
               </Link>
             </li>

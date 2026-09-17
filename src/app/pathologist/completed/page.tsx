@@ -1,12 +1,13 @@
 "use client"
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth-store'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
-import { Badge, StatusBadge } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/badge'
 import { Table, TableHead, TableBody, TableRow, TableCell } from '@/components/ui/table'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { formatDate } from '@/lib/utils'
@@ -14,6 +15,7 @@ import { FlaskConical, Eye } from 'lucide-react'
 import type { LabResult } from '@/types'
 
 export default function CompletedReportsPage() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const pathologistId = user?.id ?? 'p1'
   const [viewResult, setViewResult] = useState<LabResult | null>(null)
@@ -29,25 +31,31 @@ export default function CompletedReportsPage() {
     'Follow-up required': 'amber',
   }
 
-  const remarkLabelMap: Record<string, string> = {
-    'Normal': 'স্বাভাবিক',
-    'Abnormal': 'অস্বাভাবিক',
-    'Follow-up required': 'ফলো-আপ প্রয়োজন',
-  }
+  const remarkLabel = (remark: string) =>
+    remark === 'Normal' ? t('labOrderPage.normal')
+      : remark === 'Abnormal' ? t('labOrderPage.abnormal')
+      : t('labOrderPage.followUpRequired')
 
   if (isLoading) return <LoadingSpinner />
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-900">সম্পন্ন রিপোর্ট</h2>
-        <p className="text-sm text-slate-500 mt-0.5">মোট {reports.length}টি সম্পন্ন পরীক্ষা</p>
+        <h2 className="text-xl font-bold text-slate-900">{t('completedReportsPage.title')}</h2>
+        <p className="text-sm text-slate-500 mt-0.5">{t('completedReportsPage.totalCount', { count: reports.length })}</p>
       </div>
 
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <Table>
-          <TableHead columns={['রোগী', 'পরীক্ষা', 'ডাক্তার', 'সম্পন্নের তারিখ', 'মন্তব্য', 'কার্যক্রম']} />
-          <TableBody isEmpty={reports.length === 0} emptyMessage="কোনো সম্পন্ন রিপোর্ট নেই" colSpan={6}>
+          <TableHead columns={[
+            t('completedReportsPage.colPatient'),
+            t('completedReportsPage.colTest'),
+            t('completedReportsPage.colDoctor'),
+            t('completedReportsPage.colCompletedDate'),
+            t('completedReportsPage.colRemarks'),
+            t('common.actions'),
+          ]} />
+          <TableBody isEmpty={reports.length === 0} emptyMessage={t('completedReportsPage.noCompletedReports')} colSpan={6}>
             {reports.map((r) => (
               <TableRow key={r.id}>
                 <TableCell><span className="font-medium">{r.patient_name}</span></TableCell>
@@ -58,14 +66,14 @@ export default function CompletedReportsPage() {
                   </div>
                 </TableCell>
                 <TableCell>{r.ordered_by_doctor_name}</TableCell>
-                <TableCell>{r.result ? formatDate(r.result.submitted_at) : 'নেই'}</TableCell>
+                <TableCell>{r.result ? formatDate(r.result.submitted_at) : t('completedReportsPage.noneShort')}</TableCell>
                 <TableCell>
                   {r.result ? (
                     <Badge variant={remarkVariantMap[r.result.remarks]}>
-                      {remarkLabelMap[r.result.remarks]}
+                      {remarkLabel(r.result.remarks)}
                     </Badge>
                   ) : (
-                    <span className="text-xs text-slate-400">নেই</span>
+                    <span className="text-xs text-slate-400">{t('completedReportsPage.noneShort')}</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -73,7 +81,7 @@ export default function CompletedReportsPage() {
                     <button
                       onClick={() => setViewResult(r.result!)}
                       className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
-                      aria-label="ফলাফল দেখুন"
+                      aria-label={t('completedReportsPage.viewResult')}
                     >
                       <Eye className="w-4 h-4" />
                     </button>
@@ -88,7 +96,7 @@ export default function CompletedReportsPage() {
       <div className="md:hidden space-y-3">
         {reports.length === 0 ? (
           <div className="text-center py-12 text-slate-500 bg-white rounded-xl border border-slate-200">
-            কোনো সম্পন্ন রিপোর্ট নেই
+            {t('completedReportsPage.noCompletedReports')}
           </div>
         ) : (
           reports.map((r) => (
@@ -100,13 +108,13 @@ export default function CompletedReportsPage() {
                     <FlaskConical className="w-3.5 h-3.5 text-teal-500" />
                     <p className="text-sm text-slate-600">{r.test_name}</p>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">ডাক্তার: {r.ordered_by_doctor_name}</p>
+                  <p className="text-xs text-slate-400 mt-1">{t('completedReportsPage.doctorLabel')} {r.ordered_by_doctor_name}</p>
                   {r.result && (
                     <>
                       <p className="text-xs text-slate-400">{formatDate(r.result.submitted_at)}</p>
                       <div className="mt-2">
                         <Badge variant={remarkVariantMap[r.result.remarks]}>
-                          {remarkLabelMap[r.result.remarks]}
+                          {remarkLabel(r.result.remarks)}
                         </Badge>
                       </div>
                     </>
@@ -129,29 +137,29 @@ export default function CompletedReportsPage() {
       <Modal
         isOpen={!!viewResult}
         onClose={() => setViewResult(null)}
-        title="পরীক্ষার ফলাফল"
+        title={t('completedReportsPage.testResultTitle')}
         size="md"
       >
         {viewResult && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-500">মন্তব্য</span>
+              <span className="text-sm text-slate-500">{t('completedReportsPage.remarks')}</span>
               <Badge variant={remarkVariantMap[viewResult.remarks]}>
-                {remarkLabelMap[viewResult.remarks]}
+                {remarkLabel(viewResult.remarks)}
               </Badge>
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-700 mb-1">ফলাফলের বিবরণ</p>
+              <p className="text-sm font-medium text-slate-700 mb-1">{t('completedReportsPage.findingsLabel')}</p>
               <p className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3 whitespace-pre-wrap leading-relaxed">
                 {viewResult.findings}
               </p>
             </div>
             <div className="flex justify-between text-xs text-slate-400 pt-1 border-t border-slate-100">
-              <span>জমা দিয়েছেন: {viewResult.submitted_by_name}</span>
+              <span>{t('completedReportsPage.submittedBy')} {viewResult.submitted_by_name}</span>
               <span>{formatDate(viewResult.submitted_at)}</span>
             </div>
             <div className="flex justify-end">
-              <Button variant="outline" onClick={() => setViewResult(null)}>বন্ধ করুন</Button>
+              <Button variant="outline" onClick={() => setViewResult(null)}>{t('completedReportsPage.close')}</Button>
             </div>
           </div>
         )}

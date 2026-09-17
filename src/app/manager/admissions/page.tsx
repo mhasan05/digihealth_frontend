@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -28,34 +29,6 @@ function daysAdmitted(admittedAt: string, dischargedAt?: string): number {
   return Math.max(1, Math.ceil((to - from) / (1000 * 60 * 60 * 24)))
 }
 
-// ── Schemas ───────────────────────────────────────────────────────────────────
-const directAdmitSchema = z.object({
-  phone:        z.string().min(11, 'ফোন নম্বর দিন'),
-  bed_id:       z.string().min(1, 'বেড নির্বাচন করুন'),
-  nurse_id:     z.string().optional(),
-  doctor_id:    z.string().optional(),
-  reason:       z.string().optional(),
-  // New-user fields — optional unless creating
-  name:         z.string().optional(),
-  age:          z.string().optional(),
-  gender:       z.enum(['Male', 'Female', 'Other']).optional(),
-  blood_group:  z.string().optional(),
-})
-type DirectAdmitForm = z.infer<typeof directAdmitSchema>
-
-const editAdmissionSchema = z.object({
-  name:        z.string().min(2, 'নাম দিন'),
-  age:         z.string().optional(),
-  gender:      z.enum(['Male', 'Female', 'Other']),
-  blood_group: z.string().optional(),
-  address:     z.string().optional(),
-  bed_id:      z.string().min(1, 'বেড নির্বাচন করুন'),
-  nurse_id:    z.string().optional(),
-  doctor_id:   z.string().optional(),
-  reason:      z.string().optional(),
-})
-type EditAdmissionForm = z.infer<typeof editAdmissionSchema>
-
 // ── Detail / Edit Modal ──────────────────────────────────────────────────────
 function AdmissionDetailModal({
   admission,
@@ -74,6 +47,7 @@ function AdmissionDetailModal({
   onClose: () => void
   onDischarge: (id: string) => void
 }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
@@ -83,6 +57,19 @@ function AdmissionDetailModal({
   const [selectedNurse, setSelectedNurse] = useState<Nurse | null>(null)
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  const editAdmissionSchema = useMemo(() => z.object({
+    name:        z.string().min(2, t('admissionPage.nameRequired')),
+    age:         z.string().optional(),
+    gender:      z.enum(['Male', 'Female', 'Other']),
+    blood_group: z.string().optional(),
+    address:     z.string().optional(),
+    bed_id:      z.string().min(1, t('admissionPage.selectBed')),
+    nurse_id:    z.string().optional(),
+    doctor_id:   z.string().optional(),
+    reason:      z.string().optional(),
+  }), [t])
+  type EditAdmissionForm = z.infer<typeof editAdmissionSchema>
 
   const form = useForm<EditAdmissionForm>({
     resolver: zodResolver(editAdmissionSchema),
@@ -171,7 +158,7 @@ function AdmissionDetailModal({
       setEditing(false)
       onClose()
     },
-    onError: (err: Error) => setErrorMsg(err.message || 'সংরক্ষণ ব্যর্থ হয়েছে'),
+    onError: (err: Error) => setErrorMsg(err.message || t('admissionPage.saveFailed')),
   })
 
   if (!admission) return null
@@ -182,9 +169,9 @@ function AdmissionDetailModal({
 
   // Available beds plus the currently-occupied bed (so it stays selectable)
   const bedOptions = [
-    ...beds.map(b => ({ value: b.id, label: `বেড ${b.number} · ${b.ward} (${b.type})` })),
+    ...beds.map(b => ({ value: b.id, label: t('apptPage.bedOption', { number: b.number, ward: b.ward, type: b.type }) })),
     ...(admission.bed_id && !beds.some(b => b.id === admission.bed_id)
-      ? [{ value: admission.bed_id, label: `বেড ${admission.bed_number} · ${admission.ward} (বর্তমান)` }]
+      ? [{ value: admission.bed_id, label: `${t('admissionPage.bed')} ${admission.bed_number} · ${admission.ward} (${t('admissionPage.currentlyAdmitted')})` }]
       : []),
   ]
 
@@ -195,7 +182,7 @@ function AdmissionDetailModal({
 
   return (
     <>
-    <Modal isOpen={!!admission} onClose={onClose} title={editing ? 'ভর্তির তথ্য সম্পাদনা' : 'ভর্তির বিস্তারিত'} size="md">
+    <Modal isOpen={!!admission} onClose={onClose} title={editing ? t('admissionPage.editTitle') : t('admissionPage.detailTitle')} size="md">
       {!editing ? (
         <div className="space-y-5">
           <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
@@ -206,33 +193,33 @@ function AdmissionDetailModal({
               <p className="text-base font-bold text-slate-900 truncate">{admission.patient_name}</p>
               <p className="text-xs text-slate-500 mt-0.5">
                 {admission.patient_phone ?? ''}
-                {admission.patient_age ? ` · ${admission.patient_age} বছর` : ''}
+                {admission.patient_age ? ` · ${admission.patient_age} ${t('admissionPage.yearsShort')}` : ''}
                 {admission.blood_group && admission.blood_group !== 'Unknown' ? ` · ${admission.blood_group}` : ''}
               </p>
               {admission.reason && (
-                <p className="text-xs text-slate-500 mt-0.5 truncate">কারণ: {admission.reason}</p>
+                <p className="text-xs text-slate-500 mt-0.5 truncate">{t('admissionPage.reasonLabel', { reason: admission.reason })}</p>
               )}
             </div>
             <Badge variant={isActive ? 'green' : 'gray'}>
-              {isActive ? 'ভর্তি' : 'ছাড়প্রাপ্ত'}
+              {isActive ? t('admissionPage.admitted') : t('admissionPage.discharged')}
             </Badge>
           </div>
 
           {appointment && appointment.doctor_name && (
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ডাক্তার ও অ্যাপয়েন্টমেন্ট</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('admissionPage.doctorAndAppointment')}</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-start gap-2.5 p-3 bg-violet-50 rounded-xl">
                   <Stethoscope className="w-4 h-4 text-violet-500 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-[11px] text-slate-400 font-medium">ডাক্তার</p>
-                    <p className="text-sm font-semibold text-slate-800">{appointment.doctor_name || 'নেই'}</p>
+                    <p className="text-[11px] text-slate-400 font-medium">{t('admissionPage.doctor')}</p>
+                    <p className="text-sm font-semibold text-slate-800">{appointment.doctor_name || t('admissionPage.noneShort')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5 p-3 bg-blue-50 rounded-xl">
                   <Calendar className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-[11px] text-slate-400 font-medium">অ্যাপয়েন্টমেন্ট</p>
+                    <p className="text-[11px] text-slate-400 font-medium">{t('admissionPage.appointment')}</p>
                     <p className="text-sm font-semibold text-slate-800">{appointment.date}</p>
                     <p className="text-xs text-slate-500">{appointment.time}</p>
                   </div>
@@ -242,12 +229,12 @@ function AdmissionDetailModal({
           )}
 
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ভর্তি তথ্য</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('admissionPage.admissionInfo')}</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <BedDouble className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-[11px] text-slate-400 font-medium">বেড</p>
+                  <p className="text-[11px] text-slate-400 font-medium">{t('admissionPage.bed')}</p>
                   <p className="text-sm font-semibold text-slate-800">{admission.bed_number}</p>
                   <p className="text-xs text-slate-500">{admission.ward}</p>
                 </div>
@@ -255,21 +242,21 @@ function AdmissionDetailModal({
               <div className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <Stethoscope className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-[11px] text-slate-400 font-medium">ডাক্তার</p>
-                  <p className="text-sm font-semibold text-slate-800">{admission.doctor_name || 'নেই'}</p>
+                  <p className="text-[11px] text-slate-400 font-medium">{t('admissionPage.doctor')}</p>
+                  <p className="text-sm font-semibold text-slate-800">{admission.doctor_name || t('admissionPage.noneShort')}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <User className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-[11px] text-slate-400 font-medium">নার্স</p>
-                  <p className="text-sm font-semibold text-slate-800">{admission.nurse_name || 'নেই'}</p>
+                  <p className="text-[11px] text-slate-400 font-medium">{t('admissionPage.nurse')}</p>
+                  <p className="text-sm font-semibold text-slate-800">{admission.nurse_name || t('admissionPage.noneShort')}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <Clock className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-[11px] text-slate-400 font-medium">ভর্তির সময়</p>
+                  <p className="text-[11px] text-slate-400 font-medium">{t('admissionPage.admittedAt')}</p>
                   <p className="text-sm font-semibold text-slate-800">{formatDateTime(admission.admitted_at)}</p>
                 </div>
               </div>
@@ -277,7 +264,7 @@ function AdmissionDetailModal({
                 <div className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100">
                   <Clock className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-[11px] text-slate-400 font-medium">ছাড়ের সময়</p>
+                    <p className="text-[11px] text-slate-400 font-medium">{t('admissionPage.dischargedAt')}</p>
                     <p className="text-sm font-semibold text-slate-800">{formatDateTime(admission.discharged_at)}</p>
                   </div>
                 </div>
@@ -286,21 +273,21 @@ function AdmissionDetailModal({
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">আর্থিক সারসংক্ষেপ</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('admissionPage.financialSummary')}</p>
             <div className="rounded-xl border border-slate-200 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                <span className="text-sm text-slate-600">বেড ভাড়া (প্রতিদিন)</span>
+                <span className="text-sm text-slate-600">{t('admissionPage.bedPricePerDay')}</span>
                 <span className="text-sm font-semibold text-slate-800">{formatCurrency(admission.bed_price_snapshot)}</span>
               </div>
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                <span className="text-sm text-slate-600">মোট দিন</span>
-                <span className="text-sm font-semibold text-slate-800">{days} দিন</span>
+                <span className="text-sm text-slate-600">{t('admissionPage.totalDays')}</span>
+                <span className="text-sm font-semibold text-slate-800">{days} {t('admissionPage.daysShort')}</span>
               </div>
               <div className="flex items-center justify-between px-4 py-3 bg-green-50">
                 <div className="flex items-center gap-2">
                   <Banknote className="w-4 h-4 text-green-600" />
                   <span className="text-sm font-bold text-green-800">
-                    {isActive ? 'আনুমানিক মোট খরচ' : 'মোট বিল'}
+                    {isActive ? t('admissionPage.estimatedTotalCost') : t('admissionPage.totalBill')}
                   </span>
                 </div>
                 <span className="text-base font-extrabold text-green-700">{formatCurrency(total)}</span>
@@ -308,7 +295,7 @@ function AdmissionDetailModal({
             </div>
             {isActive && (
               <p className="text-[11px] text-slate-400 mt-1.5 pl-1">
-                * রোগী ভর্তি থাকায় খরচ প্রতিদিন বাড়ছে
+                {t('admissionPage.costRisingHint')}
               </p>
             )}
           </div>
@@ -317,15 +304,15 @@ function AdmissionDetailModal({
             <div>
               {isActive && (
                 <Button variant="ghost" onClick={() => setConfirmDischarge(true)} className="text-rose-600 hover:bg-rose-50">
-                  <LogOut className="w-4 h-4" />ছেড়ে দিন
+                  <LogOut className="w-4 h-4" />{t('admissionPage.dischargeButton')}
                 </Button>
               )}
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={onClose}>বন্ধ করুন</Button>
+              <Button variant="outline" onClick={onClose}>{t('admissionPage.closeButton')}</Button>
               {isActive && (
                 <Button onClick={() => setEditing(true)}>
-                  <Pencil className="w-4 h-4" />সম্পাদনা
+                  <Pencil className="w-4 h-4" />{t('admissionPage.editButton')}
                 </Button>
               )}
             </div>
@@ -336,55 +323,55 @@ function AdmissionDetailModal({
           onSubmit={form.handleSubmit(d => { setErrorMsg(null); saveMutation.mutate(d) })}
           className="space-y-4"
         >
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">রোগীর তথ্য</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('admissionPage.patientInfo')}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
-              label="পূর্ণ নাম"
+              label={t('admissionPage.fullName')}
               readOnly
               className="bg-slate-50 text-slate-500 cursor-not-allowed"
               {...form.register('name')}
             />
             <Input
-              label="বয়স"
+              label={t('admissionPage.age')}
               type="number"
               readOnly
               className="bg-slate-50 text-slate-500 cursor-not-allowed"
               {...form.register('age')}
             />
             <Select
-              label="লিঙ্গ"
+              label={t('admissionPage.gender')}
               disabled
               className="bg-slate-50 text-slate-500 cursor-not-allowed"
               options={[
-                { value: 'Male',   label: 'পুরুষ'    },
-                { value: 'Female', label: 'মহিলা'    },
-                { value: 'Other',  label: 'অন্যান্য' },
+                { value: 'Male',   label: t('patient.male')   },
+                { value: 'Female', label: t('patient.female') },
+                { value: 'Other',  label: t('patient.other')  },
               ]}
               {...form.register('gender')}
             />
             <Select
-              label="রক্তের গ্রুপ (ঐচ্ছিক)"
+              label={t('admissionPage.bloodGroupOptional')}
               disabled
               className="bg-slate-50 text-slate-500 cursor-not-allowed"
               options={[
-                { value: '', label: 'অজানা' },
+                { value: '', label: t('settings.unknownBloodGroup') },
                 ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
               ]}
               {...form.register('blood_group')}
             />
           </div>
           <Input
-            label="ঠিকানা"
+            label={t('admissionPage.address')}
             readOnly
             className="bg-slate-50 text-slate-500 cursor-not-allowed"
             {...form.register('address')}
           />
 
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider pt-2">ভর্তি বিবরণ</p>
-          <Select label="বেড"
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider pt-2">{t('admissionPage.admissionDetails')}</p>
+          <Select label={t('admissionPage.bedLabel')}
             error={form.formState.errors.bed_id?.message}
             options={bedOptions}
-            placeholder="বেড নির্বাচন করুন"
+            placeholder={t('admissionPage.selectBed')}
             {...form.register('bed_id')}
           />
           <DoctorSearch
@@ -400,15 +387,15 @@ function AdmissionDetailModal({
             onSelect={(n) => { setSelectedNurse(n); form.setValue('nurse_id', n.id) }}
             onClear={() => { setSelectedNurse(null); form.setValue('nurse_id', '') }}
           />
-          <Input label="ভর্তির কারণ" placeholder="যেমন: জ্বর, পরীক্ষা" {...form.register('reason')} />
+          <Input label={t('admissionPage.admissionReason')} placeholder={t('admissionPage.admissionReasonPlaceholder')} {...form.register('reason')} />
 
           {errorMsg && (
             <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">{errorMsg}</div>
           )}
 
           <div className="flex justify-end gap-3 pt-1">
-            <Button type="button" variant="ghost" onClick={() => { setEditing(false); setErrorMsg(null) }}>বাতিল</Button>
-            <Button type="submit" loading={saveMutation.isPending}>সংরক্ষণ করুন</Button>
+            <Button type="button" variant="ghost" onClick={() => { setEditing(false); setErrorMsg(null) }}>{t('common.cancel')}</Button>
+            <Button type="submit" loading={saveMutation.isPending}>{t('admissionPage.save')}</Button>
           </div>
         </form>
       )}
@@ -418,11 +405,11 @@ function AdmissionDetailModal({
       isOpen={confirmDischarge}
       onClose={() => setConfirmDischarge(false)}
       onConfirm={() => { setConfirmDischarge(false); onDischarge(admission.id) }}
-      title="রোগীকে ছেড়ে দিন"
-      message="আপনি কি এই রোগীকে ছাড়প্রাপ্ত হিসেবে চিহ্নিত করতে চান? এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।"
+      title={t('admissionPage.dischargeTitle')}
+      message={t('admissionPage.dischargeConfirm')}
       tone="warning"
-      confirmLabel="হ্যাঁ, ছেড়ে দিন"
-      cancelLabel="না"
+      confirmLabel={t('admissionPage.yesDischarge')}
+      cancelLabel={t('admissionPage.no')}
     />
     </>
   )
@@ -444,6 +431,7 @@ function PatientPhoneSearch({
   onNotFound: (phone: string) => void
   onPhoneChange: (phone: string) => void
 }) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [open, setOpen]   = useState(false)
   const wrapRef           = useRef<HTMLDivElement>(null)
@@ -478,7 +466,7 @@ function PatientPhoneSearch({
   if (selected) {
     return (
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">রোগী</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('admissionPage.patientLabel')}</label>
         <div className="flex items-center justify-between px-4 py-3 bg-green-50 border border-green-200 rounded-xl">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
@@ -491,7 +479,7 @@ function PatientPhoneSearch({
           </div>
           <button type="button" onClick={onClear}
             className="text-xs font-medium text-green-600 hover:text-green-800 transition-colors">
-            পরিবর্তন
+            {t('admissionPage.change')}
           </button>
         </div>
       </div>
@@ -500,7 +488,7 @@ function PatientPhoneSearch({
 
   return (
     <div ref={wrapRef}>
-      <label className="block text-sm font-medium text-slate-700 mb-1.5">রোগী খুঁজুন</label>
+      <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('admissionPage.searchPatient')}</label>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
         <input
@@ -508,7 +496,7 @@ function PatientPhoneSearch({
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          placeholder="ফোন নম্বর, নাম বা হেলথ আইডি দিয়ে খুঁজুন..."
+          placeholder={t('admissionPage.searchPatientPlaceholder')}
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all"
         />
         {open && results.length > 0 && (
@@ -529,7 +517,7 @@ function PatientPhoneSearch({
           </div>
         )}
         {open && query.length >= 2 && results.length === 0 && query.length < 11 && (
-          <p className="mt-1.5 text-xs text-slate-400 pl-1">কোনো রোগী পাওয়া যায়নি</p>
+          <p className="mt-1.5 text-xs text-slate-400 pl-1">{t('admissionPage.noPatientFound')}</p>
         )}
       </div>
     </div>
@@ -538,9 +526,24 @@ function PatientPhoneSearch({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function AdmissionsPage() {
+  const { t }       = useTranslation()
   const { user }    = useAuthStore()
   const hospitalId  = user?.active_hospital_id ?? 'h1'
   const queryClient = useQueryClient()
+
+  const directAdmitSchema = useMemo(() => z.object({
+    phone:        z.string().min(11, t('admissionPage.phoneRequired')),
+    bed_id:       z.string().min(1, t('admissionPage.selectBed')),
+    nurse_id:     z.string().optional(),
+    doctor_id:    z.string().optional(),
+    reason:       z.string().optional(),
+    // New-user fields — optional unless creating
+    name:         z.string().optional(),
+    age:          z.string().optional(),
+    gender:       z.enum(['Male', 'Female', 'Other']).optional(),
+    blood_group:  z.string().optional(),
+  }), [t])
+  type DirectAdmitForm = z.infer<typeof directAdmitSchema>
 
   const [viewAdmission, setViewAdmission] = useState<Admission | null>(null)
   const [admitOpen,     setAdmitOpen]     = useState(false)
@@ -604,11 +607,11 @@ export default function AdmissionsPage() {
       queryClient.invalidateQueries({ queryKey: ['manager-dashboard', hospitalId] })
       queryClient.invalidateQueries({ queryKey: ['patients'] })
       if (admission.created_new_user) {
-        alert(`নতুন রোগী তৈরি হয়েছে। ডিফল্ট পাসওয়ার্ড: 123456`)
+        alert(t('admissionPage.newUserCreatedAlert'))
       }
       closeAdmit()
     },
-    onError: (err: Error) => setErrorMsg(err.message || 'ভর্তি ব্যর্থ হয়েছে'),
+    onError: (err: Error) => setErrorMsg(err.message || t('admissionPage.admitFailed')),
   })
 
   const dischargeMutation = useMutation({
@@ -689,14 +692,14 @@ export default function AdmissionsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">ভর্তি ব্যবস্থাপনা</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t('admissionPage.title')}</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            বর্তমানে ভর্তি {current.length}জন | ছাড়প্রাপ্ত {discharged.length}জন
+            {t('admissionPage.summaryLine', { current: current.length, discharged: discharged.length })}
           </p>
         </div>
         <Button onClick={openAdmit}>
           <Plus className="w-4 h-4" />
-          নতুন ভর্তি
+          {t('admissionPage.newAdmission')}
         </Button>
       </div>
 
@@ -707,7 +710,7 @@ export default function AdmissionsPage() {
           type="text"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          placeholder="নাম বা ফোন নম্বর দিয়ে খুঁজুন..."
+          placeholder={t('admissionPage.searchPlaceholder')}
           className="w-full pl-9 pr-9 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all"
         />
         {searchQuery && (
@@ -715,7 +718,7 @@ export default function AdmissionsPage() {
             type="button"
             onClick={() => setSearchQuery('')}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
-            aria-label="সাফ করুন"
+            aria-label={t('admissionPage.clear')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -724,11 +727,20 @@ export default function AdmissionsPage() {
 
       {/* Currently admitted */}
       <div>
-        <h3 className="text-base font-semibold text-slate-800 mb-3">বর্তমানে ভর্তি রোগী</h3>
+        <h3 className="text-base font-semibold text-slate-800 mb-3">{t('admissionPage.currentlyAdmitted')}</h3>
         <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <Table>
-            <TableHead columns={['রোগীর নাম', 'বেড', 'ওয়ার্ড', 'নার্স', 'ভর্তির সময়', 'মূল্য/দিন', 'স্ট্যাটাস', '']} />
-            <TableBody isEmpty={current.length === 0} emptyMessage={searchQuery ? 'কোনো ফলাফল পাওয়া যায়নি' : 'বর্তমানে কোনো ভর্তি রোগী নেই'} colSpan={8}>
+            <TableHead columns={[
+              t('admissionPage.colPatientName'),
+              t('admissionPage.bed'),
+              t('admissionPage.colWard'),
+              t('admissionPage.colNurse'),
+              t('admissionPage.colAdmittedAt'),
+              t('admissionPage.colPricePerDay'),
+              t('common.status'),
+              '',
+            ]} />
+            <TableBody isEmpty={current.length === 0} emptyMessage={searchQuery ? t('admissionPage.noResults') : t('admissionPage.noCurrentPatients')} colSpan={8}>
               {current.map((a) => (
                 <TableRow key={a.id}>
                   <TableCell><span className="font-medium">{a.patient_name}</span></TableCell>
@@ -742,12 +754,12 @@ export default function AdmissionsPage() {
                   <TableCell>{a.nurse_name}</TableCell>
                   <TableCell>{formatDateTime(a.admitted_at)}</TableCell>
                   <TableCell>{formatCurrency(a.bed_price_snapshot)}</TableCell>
-                  <TableCell><Badge variant="green">ভর্তি</Badge></TableCell>
+                  <TableCell><Badge variant="green">{t('admissionPage.admitted')}</Badge></TableCell>
                   <TableCell>
                     <button
                       onClick={() => setViewAdmission(a)}
                       className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                      title="বিস্তারিত দেখুন"
+                      title={t('admissionPage.viewDetails')}
                     >
                       <Eye className="w-4 h-4" />
                     </button>
@@ -761,7 +773,7 @@ export default function AdmissionsPage() {
         <div className="md:hidden space-y-3">
           {current.length === 0 ? (
             <div className="text-center py-10 text-slate-500 bg-white rounded-xl border border-slate-200">
-              {searchQuery ? 'কোনো ফলাফল পাওয়া যায়নি' : 'বর্তমানে কোনো ভর্তি রোগী নেই'}
+              {searchQuery ? t('admissionPage.noResults') : t('admissionPage.noCurrentPatients')}
             </div>
           ) : (
             current.map((a) => (
@@ -769,13 +781,13 @@ export default function AdmissionsPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-semibold text-slate-900">{a.patient_name}</p>
-                    <p className="text-sm text-slate-500">বেড {a.bed_number} | {a.ward}</p>
-                    <p className="text-sm text-slate-500">নার্স: {a.nurse_name}</p>
+                    <p className="text-sm text-slate-500">{t('admissionPage.bed')} {a.bed_number} | {a.ward}</p>
+                    <p className="text-sm text-slate-500">{t('admissionPage.nurse')}: {a.nurse_name}</p>
                     <p className="text-xs text-slate-400 mt-1">{formatDateTime(a.admitted_at)}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{formatCurrency(a.bed_price_snapshot)}/দিন</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{formatCurrency(a.bed_price_snapshot)}{t('admissionPage.perDayShort')}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <Badge variant="green">ভর্তি</Badge>
+                    <Badge variant="green">{t('admissionPage.admitted')}</Badge>
                     <button
                       onClick={() => setViewAdmission(a)}
                       className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
@@ -793,10 +805,18 @@ export default function AdmissionsPage() {
       {/* Discharged */}
       {discharged.length > 0 && (
         <div>
-          <h3 className="text-base font-semibold text-slate-800 mb-3">ছাড়প্রাপ্ত রোগী</h3>
+          <h3 className="text-base font-semibold text-slate-800 mb-3">{t('admissionPage.dischargedPatients')}</h3>
           <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <Table>
-              <TableHead columns={['রোগীর নাম', 'বেড', 'ওয়ার্ড', 'ভর্তির সময়', 'ছাড়ের সময়', 'স্ট্যাটাস', '']} />
+              <TableHead columns={[
+                t('admissionPage.colPatientName'),
+                t('admissionPage.bed'),
+                t('admissionPage.colWard'),
+                t('admissionPage.colAdmittedAt'),
+                t('admissionPage.colDischargedAt'),
+                t('common.status'),
+                '',
+              ]} />
               <TableBody isEmpty={false} emptyMessage="" colSpan={7}>
                 {discharged.map((a) => (
                   <TableRow key={a.id}>
@@ -809,13 +829,13 @@ export default function AdmissionsPage() {
                     </TableCell>
                     <TableCell>{a.ward}</TableCell>
                     <TableCell>{formatDateTime(a.admitted_at)}</TableCell>
-                    <TableCell>{a.discharged_at ? formatDateTime(a.discharged_at) : 'নেই'}</TableCell>
-                    <TableCell><Badge variant="gray">ছাড়প্রাপ্ত</Badge></TableCell>
+                    <TableCell>{a.discharged_at ? formatDateTime(a.discharged_at) : t('admissionPage.noneShort')}</TableCell>
+                    <TableCell><Badge variant="gray">{t('admissionPage.discharged')}</Badge></TableCell>
                     <TableCell>
                       <button
                         onClick={() => setViewAdmission(a)}
                         className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                        title="বিস্তারিত দেখুন"
+                        title={t('admissionPage.viewDetails')}
                       >
                         <Eye className="w-4 h-4" />
                       </button>
@@ -832,14 +852,14 @@ export default function AdmissionsPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-semibold text-slate-900">{a.patient_name}</p>
-                    <p className="text-sm text-slate-500">বেড {a.bed_number} | {a.ward}</p>
-                    <p className="text-xs text-slate-400 mt-1">ভর্তি: {formatDateTime(a.admitted_at)}</p>
+                    <p className="text-sm text-slate-500">{t('admissionPage.bed')} {a.bed_number} | {a.ward}</p>
+                    <p className="text-xs text-slate-400 mt-1">{t('admissionPage.admitted')}: {formatDateTime(a.admitted_at)}</p>
                     {a.discharged_at && (
-                      <p className="text-xs text-slate-400">ছাড়: {formatDateTime(a.discharged_at)}</p>
+                      <p className="text-xs text-slate-400">{t('admissionPage.discharged')}: {formatDateTime(a.discharged_at)}</p>
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <Badge variant="gray">ছাড়প্রাপ্ত</Badge>
+                    <Badge variant="gray">{t('admissionPage.discharged')}</Badge>
                     <button
                       onClick={() => setViewAdmission(a)}
                       className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
@@ -858,8 +878,8 @@ export default function AdmissionsPage() {
       <Modal
         isOpen={admitOpen}
         onClose={closeAdmit}
-        title="রোগী ভর্তি করুন"
-        subtitle="রোগীর ফোন নম্বর দিয়ে খুঁজুন। না থাকলে নতুন রোগী হিসেবে যোগ করুন।"
+        title={t('admissionPage.admitPatientTitle')}
+        subtitle={t('admissionPage.admitSubtitle')}
         size="md"
       >
         <form
@@ -867,7 +887,7 @@ export default function AdmissionsPage() {
             setErrorMsg(null)
             // If new-user form is shown, name is required
             if (showNewUser && !selectedPatient && !(d.name && d.name.trim())) {
-              form.setError('name', { message: 'নাম দিন' })
+              form.setError('name', { message: t('admissionPage.nameRequired') })
               return
             }
             admitMutation.mutate(d)
@@ -893,7 +913,7 @@ export default function AdmissionsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <UserPlus className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                  <p className="text-xs font-bold text-amber-700">নতুন রোগী হিসেবে যোগ করুন</p>
+                  <p className="text-xs font-bold text-amber-700">{t('admissionPage.addAsNewPatient')}</p>
                 </div>
                 <button type="button"
                   onClick={() => { setShowNewUser(false); form.setValue('name', '') }}
@@ -902,22 +922,22 @@ export default function AdmissionsPage() {
                 </button>
               </div>
               <p className="text-[11px] text-amber-700/80">
-                ডিফল্ট পাসওয়ার্ড: <span className="font-mono font-bold">123456</span>
+                {t('admissionPage.defaultPasswordHint')} <span className="font-mono font-bold">123456</span>
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Input label="পূর্ণ নাম" error={form.formState.errors.name?.message} {...form.register('name')} />
-                <Input label="বয়স" type="number" {...form.register('age')} />
-                <Select label="লিঙ্গ"
+                <Input label={t('admissionPage.fullName')} error={form.formState.errors.name?.message} {...form.register('name')} />
+                <Input label={t('admissionPage.age')} type="number" {...form.register('age')} />
+                <Select label={t('admissionPage.gender')}
                   options={[
-                    { value: 'Male',   label: 'পুরুষ'    },
-                    { value: 'Female', label: 'মহিলা'    },
-                    { value: 'Other',  label: 'অন্যান্য' },
+                    { value: 'Male',   label: t('patient.male')   },
+                    { value: 'Female', label: t('patient.female') },
+                    { value: 'Other',  label: t('patient.other')  },
                   ]}
                   {...form.register('gender')}
                 />
-                <Select label="রক্তের গ্রুপ (ঐচ্ছিক)"
+                <Select label={t('admissionPage.bloodGroupOptional')}
                   options={[
-                    { value: '', label: 'অজানা' },
+                    { value: '', label: t('settings.unknownBloodGroup') },
                     ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
                   ]}
                   {...form.register('blood_group')}
@@ -927,10 +947,10 @@ export default function AdmissionsPage() {
           )}
 
           {/* Bed */}
-          <Select label="বেড নির্বাচন করুন"
+          <Select label={t('admissionPage.selectBed')}
             error={form.formState.errors.bed_id?.message}
-            options={availableBeds.map(b => ({ value: b.id, label: `বেড ${b.number} · ${b.ward} (${b.type})` }))}
-            placeholder={availableBeds.length === 0 ? 'কোনো খালি বেড নেই' : 'বেড নির্বাচন করুন'}
+            options={availableBeds.map(b => ({ value: b.id, label: t('apptPage.bedOption', { number: b.number, ward: b.ward, type: b.type }) }))}
+            placeholder={availableBeds.length === 0 ? t('admissionPage.noAvailableBeds') : t('admissionPage.selectBed')}
             {...form.register('bed_id')}
           />
 
@@ -951,7 +971,7 @@ export default function AdmissionsPage() {
             onClear={() => { setSelectedNurse(null); form.setValue('nurse_id', '') }}
           />
 
-          <Input label="ভর্তির কারণ (ঐচ্ছিক)" placeholder="যেমন: জ্বর, পরীক্ষা" {...form.register('reason')} />
+          <Input label={t('admissionPage.reasonOptional')} placeholder={t('admissionPage.admissionReasonPlaceholder')} {...form.register('reason')} />
 
           {errorMsg && (
             <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
@@ -960,9 +980,9 @@ export default function AdmissionsPage() {
           )}
 
           <div className="flex justify-end gap-3 pt-1">
-            <Button type="button" variant="ghost" onClick={closeAdmit}>বাতিল</Button>
+            <Button type="button" variant="ghost" onClick={closeAdmit}>{t('common.cancel')}</Button>
             <Button type="submit" loading={admitMutation.isPending}>
-              ভর্তি করুন
+              {t('admissionPage.admit')}
             </Button>
           </div>
         </form>

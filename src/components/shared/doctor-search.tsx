@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Search, Stethoscope } from 'lucide-react'
 import type { Doctor } from '@/types'
 
@@ -14,6 +15,7 @@ interface DoctorSearchProps {
 }
 
 export function DoctorSearch({ doctors, selected, onSelect, onClear, error, optional = false }: DoctorSearchProps) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [open,  setOpen]  = useState(false)
   const wrapRef           = useRef<HTMLDivElement>(null)
@@ -37,7 +39,7 @@ export function DoctorSearch({ doctors, selected, onSelect, onClear, error, opti
   if (selected) {
     return (
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">ডাক্তার</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('searchWidget.doctorLabel')}</label>
         <div className="flex items-center justify-between px-4 py-3 bg-violet-50 border border-violet-200 rounded-xl">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
@@ -50,7 +52,7 @@ export function DoctorSearch({ doctors, selected, onSelect, onClear, error, opti
           </div>
           <button type="button" onClick={onClear}
             className="text-xs font-medium text-violet-600 hover:text-violet-800 transition-colors">
-            পরিবর্তন
+            {t('searchWidget.change')}
           </button>
         </div>
       </div>
@@ -61,7 +63,7 @@ export function DoctorSearch({ doctors, selected, onSelect, onClear, error, opti
   return (
     <div ref={wrapRef}>
       <label className="block text-sm font-medium text-slate-700 mb-1.5">
-        ডাক্তার খুঁজুন {optional && <span className="text-slate-400 font-normal">(ঐচ্ছিক)</span>}
+        {t('searchWidget.doctorSearchLabel')} {optional && <span className="text-slate-400 font-normal">{t('searchWidget.optional')}</span>}
       </label>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -70,7 +72,7 @@ export function DoctorSearch({ doctors, selected, onSelect, onClear, error, opti
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          placeholder={empty ? 'কোনো ডাক্তার নেই' : 'নাম বা বিশেষজ্ঞতা দিয়ে খুঁজুন...'}
+          placeholder={empty ? t('searchWidget.doctorNone') : t('searchWidget.doctorPlaceholder')}
           disabled={empty}
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all disabled:bg-slate-50 disabled:cursor-not-allowed"
         />
@@ -92,7 +94,7 @@ export function DoctorSearch({ doctors, selected, onSelect, onClear, error, opti
           </div>
         )}
         {open && query.length >= 2 && results.length === 0 && !empty && (
-          <p className="mt-1.5 text-xs text-slate-400 pl-1">কোনো ডাক্তার পাওয়া যায়নি</p>
+          <p className="mt-1.5 text-xs text-slate-400 pl-1">{t('searchWidget.doctorNotFound')}</p>
         )}
       </div>
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}

@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth-store'
@@ -8,6 +9,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { api } from '@/lib/api'
 
 export default function OwnerLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation()
   const { ready } = useAuthGuard('owner')
   const { user } = useAuthStore()
 
@@ -28,7 +30,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
   const hospital = hospitals?.find((h) => h.id === user?.active_hospital_id)
 
   return (
-    <DashboardLayout pageTitle="Owner Dashboard" hospitalName={hospital?.name_en}>
+    <DashboardLayout pageTitle={t('page.ownerDashboard')} hospitalName={hospital?.name_en}>
       {children}
     </DashboardLayout>
   )

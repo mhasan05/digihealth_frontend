@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from 'react'
+import { useTranslation, type TFunction } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -15,7 +16,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { StatusBadge } from '@/components/ui/badge'
 import { QRHealthId } from '@/components/shared/qr-health-id'
 import { StatCard } from '@/components/shared/stat-card'
-import { formatDate, formatDateTime, formatFileSize } from '@/lib/utils'
+import { formatDate, formatDateTime, formatFileSize, calculateAge } from '@/lib/utils'
 import {
   Plus, Pencil, Trash2, User,
   TrendingUp, TrendingDown, Minus, Activity, Heart, Scale,
@@ -34,16 +35,13 @@ const PATIENT_ID = 'pt1'
 const MAX_FREE   = 10
 const IS_PREMIUM = false
 
-// ── Schemas ───────────────────────────────────────────────────────────────────
-const rbsSchema    = z.object({ value: z.coerce.number().min(40).max(600), date: z.string().min(1) })
-const bpSchema     = z.object({ value: z.string().regex(/^\d{2,3}\/\d{2,3}$/, 'ফরম্যাট: ১২০/৮০'), date: z.string().min(1) })
-const weightSchema = z.object({ value: z.coerce.number().min(1).max(300), date: z.string().min(1) })
-
 type MetricType = 'rbs' | 'blood_pressure' | 'weight'
 interface MetricModalState { isOpen: boolean; type: MetricType; editing?: HealthMetric }
 
 // ── Metric config ─────────────────────────────────────────────────────────────
-const metricConfig: Record<MetricType, {
+// Built from `t` (not a module-level constant) so status/placeholder labels
+// re-translate when the language changes.
+function buildMetricConfig(t: TFunction): Record<MetricType, {
   label: string; unit: string; svgColor: string
   accentBg: string; accentText: string; accentBorder: string; dotBg: string
   icon: React.ElementType
@@ -51,31 +49,33 @@ const metricConfig: Record<MetricType, {
   status: (n: number) => { label: string; cls: string } | null
   goodTrend: 'down' | 'up' | 'neutral'
   placeholder: string
-}> = {
-  rbs: {
-    label: 'RBS', unit: 'mg/dL', svgColor: '#0ea5e9',
-    accentBg: 'bg-green-50', accentText: 'text-green-600', accentBorder: 'border-green-200', dotBg: 'bg-green-100',
-    icon: Activity, toNumber: v => parseFloat(v),
-    status: n => n < 140 ? { label: 'স্বাভাবিক', cls: 'bg-green-100 text-green-700' }
-               : n < 200 ? { label: 'প্রি-ডায়াবেটিক', cls: 'bg-amber-100 text-amber-700' }
-               :            { label: 'ডায়াবেটিক', cls: 'bg-red-100 text-red-700' },
-    goodTrend: 'down', placeholder: '১৪০',
-  },
-  blood_pressure: {
-    label: 'রক্তচাপ', unit: 'mmHg', svgColor: '#f43f5e',
-    accentBg: 'bg-rose-50', accentText: 'text-rose-600', accentBorder: 'border-rose-200', dotBg: 'bg-rose-100',
-    icon: Heart, toNumber: v => parseInt(v.split('/')[0]),
-    status: n => n < 120 ? { label: 'স্বাভাবিক', cls: 'bg-green-100 text-green-700' }
-               : n < 130 ? { label: 'উন্নত', cls: 'bg-amber-100 text-amber-700' }
-               :            { label: 'উচ্চ রক্তচাপ', cls: 'bg-red-100 text-red-700' },
-    goodTrend: 'down', placeholder: '১২০/৮০',
-  },
-  weight: {
-    label: 'ওজন', unit: 'কেজি', svgColor: '#f59e0b',
-    accentBg: 'bg-amber-50', accentText: 'text-amber-600', accentBorder: 'border-amber-200', dotBg: 'bg-amber-100',
-    icon: Scale, toNumber: v => parseFloat(v),
-    status: () => null, goodTrend: 'neutral', placeholder: '৭০',
-  },
+}> {
+  return {
+    rbs: {
+      label: 'RBS', unit: 'mg/dL', svgColor: '#0ea5e9',
+      accentBg: 'bg-green-50', accentText: 'text-green-600', accentBorder: 'border-green-200', dotBg: 'bg-green-100',
+      icon: Activity, toNumber: v => parseFloat(v),
+      status: n => n < 140 ? { label: t('status.normal'), cls: 'bg-green-100 text-green-700' }
+                 : n < 200 ? { label: t('metrics.prediabetic'), cls: 'bg-amber-100 text-amber-700' }
+                 :            { label: t('metrics.diabetic'), cls: 'bg-red-100 text-red-700' },
+      goodTrend: 'down', placeholder: t('metrics.rbsPlaceholder'),
+    },
+    blood_pressure: {
+      label: t('patient.bloodPressure'), unit: 'mmHg', svgColor: '#f43f5e',
+      accentBg: 'bg-rose-50', accentText: 'text-rose-600', accentBorder: 'border-rose-200', dotBg: 'bg-rose-100',
+      icon: Heart, toNumber: v => parseInt(v.split('/')[0]),
+      status: n => n < 120 ? { label: t('status.normal'), cls: 'bg-green-100 text-green-700' }
+                 : n < 130 ? { label: t('metrics.elevated'), cls: 'bg-amber-100 text-amber-700' }
+                 :            { label: t('patientCondition.hypertension'), cls: 'bg-red-100 text-red-700' },
+      goodTrend: 'down', placeholder: t('metrics.bpPlaceholder'),
+    },
+    weight: {
+      label: t('metrics.weight'), unit: t('metrics.kgUnit'), svgColor: '#f59e0b',
+      accentBg: 'bg-amber-50', accentText: 'text-amber-600', accentBorder: 'border-amber-200', dotBg: 'bg-amber-100',
+      icon: Scale, toNumber: v => parseFloat(v),
+      status: () => null, goodTrend: 'neutral', placeholder: t('metrics.weightPlaceholder'),
+    },
+  }
 }
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ function Sparkline({ values, color }: { values: number[]; color: string }) {
     d += ` C${pts[i-1].x+cp},${pts[i-1].y} ${pts[i].x-cp},${pts[i].y} ${pts[i].x},${pts[i].y}`
   }
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-10" preserveAspectRatio="none">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-20 sm:h-24" preserveAspectRatio="none">
       <path d={d} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" opacity="0.85" />
       <circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y} r="3" fill={color} />
     </svg>
@@ -105,8 +105,10 @@ function MetricCard({ type, metrics, onAdd, onEdit, onDelete }: {
   type: MetricType; metrics: HealthMetric[]
   onAdd: (t: MetricType) => void; onEdit: (m: HealthMetric) => void; onDelete: (id: string) => void
 }) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
-  const cfg  = metricConfig[type], Icon = cfg.icon
+  const cfg  = useMemo(() => buildMetricConfig(t)[type], [t, type])
+  const Icon = cfg.icon
   // Memoize per-type sort to avoid re-running on every parent render.
   const sorted = useMemo(
     () => metrics
@@ -157,10 +159,10 @@ function MetricCard({ type, metrics, onAdd, onEdit, onDelete }: {
                 </span>
               )}
             </div>
-            {latest && <p className="text-[11px] text-slate-400 mt-1">সর্বশেষ: {formatDate(latest.date)}</p>}
+            {latest && <p className="text-[11px] text-slate-400 mt-1">{t('metrics.latest')}: {formatDate(latest.date)}</p>}
           </div>
           {sparkValues.length >= 2 && (
-            <div className="w-24 flex-shrink-0 opacity-80"><Sparkline values={sparkValues} color={cfg.svgColor} /></div>
+            <div className="w-32 sm:w-48 md:w-56 flex-shrink-0"><Sparkline values={sparkValues} color={cfg.svgColor} /></div>
           )}
         </div>
       </div>
@@ -168,14 +170,14 @@ function MetricCard({ type, metrics, onAdd, onEdit, onDelete }: {
         <button type="button" onClick={() => setExpanded(e => !e)}
           className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors">
           <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
-          {sorted.length}টি রিডিং
+          {t('metrics.readingsCount', { count: sorted.length })}
         </button>
-        <Button size="sm" onClick={() => onAdd(type)}><Plus className="w-3.5 h-3.5" />যোগ করুন</Button>
+        <Button size="sm" onClick={() => onAdd(type)}><Plus className="w-3.5 h-3.5" />{t('common.add')}</Button>
       </div>
       {expanded && (
         <div className="border-t border-slate-100">
           {sorted.length === 0 ? (
-            <p className="text-center text-xs text-slate-400 py-4">কোনো রিডিং নেই</p>
+            <p className="text-center text-xs text-slate-400 py-4">{t('metrics.noReadings')}</p>
           ) : sorted.map((m, idx) => (
             <div key={m.id} className={`flex items-center justify-between px-5 py-2.5 hover:bg-slate-50 transition-colors ${idx !== sorted.length - 1 ? 'border-b border-slate-50' : ''}`}>
               <span className="text-xs text-slate-400 w-24">{formatDate(m.date)}</span>
@@ -194,9 +196,15 @@ function MetricCard({ type, metrics, onAdd, onEdit, onDelete }: {
 
 // ── Metric Modal ──────────────────────────────────────────────────────────────
 function MetricModal({ state, onClose, patientId }: { state: MetricModalState; onClose: () => void; patientId: string }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const cfg = metricConfig[state.type]
-  const schema = state.type === 'rbs' ? rbsSchema : state.type === 'blood_pressure' ? bpSchema : weightSchema
+  const cfg = useMemo(() => buildMetricConfig(t)[state.type], [t, state.type])
+  const schemas = useMemo(() => ({
+    rbs:    z.object({ value: z.coerce.number().min(40).max(600), date: z.string().min(1) }),
+    blood_pressure: z.object({ value: z.string().regex(/^\d{2,3}\/\d{2,3}$/, t('metrics.bpFormatError')), date: z.string().min(1) }),
+    weight: z.object({ value: z.coerce.number().min(1).max(300), date: z.string().min(1) }),
+  }), [t])
+  const schema = schemas[state.type]
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { value: state.editing?.value ?? '', date: state.editing?.date ?? new Date().toISOString().split('T')[0] },
@@ -216,13 +224,13 @@ function MetricModal({ state, onClose, patientId }: { state: MetricModalState; o
     state.editing ? updateMutation.mutate(payload) : addMutation.mutate(payload)
   }
   return (
-    <Modal isOpen={state.isOpen} onClose={onClose} title={state.editing ? 'রিডিং সম্পাদনা' : `${cfg.label} যোগ করুন`} size="sm">
+    <Modal isOpen={state.isOpen} onClose={onClose} title={state.editing ? t('metrics.editReading') : t('metrics.addReadingTitle', { label: cfg.label })} size="sm">
       <form onSubmit={handleSubmit(onSubmit as Parameters<typeof handleSubmit>[0])} className="space-y-4">
-        <Input label="তারিখ" type="date" error={(errors as Record<string, { message?: string }>).date?.message} {...register('date')} />
+        <Input label={t('appointment.date')} type="date" error={(errors as Record<string, { message?: string }>).date?.message} {...register('date')} />
         <Input label={`${cfg.label} (${cfg.unit})`} placeholder={cfg.placeholder} error={(errors as Record<string, { message?: string }>).value?.message} {...register('value')} />
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>বাতিল</Button>
-          <Button type="submit" loading={addMutation.isPending || updateMutation.isPending}>সংরক্ষণ</Button>
+          <Button type="button" variant="outline" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button type="submit" loading={addMutation.isPending || updateMutation.isPending}>{t('common.save')}</Button>
         </div>
       </form>
     </Modal>
@@ -231,6 +239,7 @@ function MetricModal({ state, onClose, patientId }: { state: MetricModalState; o
 
 // ── Tab: স্বাস্থ্য পরিমাপ ────────────────────────────────────────────────────
 function MetricsTab({ patientId }: { patientId: string }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [metricModal, setMetricModal] = useState<MetricModalState>({ isOpen: false, type: 'rbs' })
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -243,7 +252,7 @@ function MetricsTab({ patientId }: { patientId: string }) {
     <div className="space-y-4">
       {(['rbs', 'blood_pressure', 'weight'] as MetricType[]).map(type => (
         <MetricCard key={type} type={type} metrics={metrics}
-          onAdd={t => setMetricModal({ isOpen: true, type: t })}
+          onAdd={newType => setMetricModal({ isOpen: true, type: newType })}
           onEdit={m => setMetricModal({ isOpen: true, type: m.metric_type, editing: m })}
           onDelete={id => setDeleteId(id)}
         />
@@ -251,13 +260,14 @@ function MetricsTab({ patientId }: { patientId: string }) {
       <MetricModal state={metricModal} onClose={() => setMetricModal({ isOpen: false, type: 'rbs' })} patientId={patientId} />
       <ConfirmDialog isOpen={!!deleteId} onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        title="রিডিং মুছুন" message="আপনি কি এই রিডিংটি মুছে ফেলতে চান?" isLoading={deleteMutation.isPending} />
+        title={t('metrics.deleteReadingTitle')} message={t('metrics.deleteReadingConfirm')} isLoading={deleteMutation.isPending} />
     </div>
   )
 }
 
 // ── Tab: রিপোর্ট ──────────────────────────────────────────────────────────────
 function ReportsTab({ patientId }: { patientId: string }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [uploadOpen,   setUploadOpen]   = useState(false)
   const [fifoWarning,  setFifoWarning]  = useState(false)
@@ -274,7 +284,7 @@ function ReportsTab({ patientId }: { patientId: string }) {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['reports', patientId] }); setDeleteId(null) },
   })
   const handleFileSelect = (file: File) => {
-    if (file.size > 10 * 1024 * 1024) { alert('ফাইলের আকার সর্বোচ্চ ১০ MB হতে পারে'); return }
+    if (file.size > 10 * 1024 * 1024) { alert(t('reports.fileSizeError')); return }
     setSelectedFile(file)
   }
   const used = reports.length
@@ -283,16 +293,16 @@ function ReportsTab({ patientId }: { patientId: string }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">{used}/{MAX_FREE} রিপোর্ট ব্যবহৃত</p>
+        <p className="text-sm text-slate-500">{t('reports.usedCount', { used, max: MAX_FREE })}</p>
         <Button onClick={() => !IS_PREMIUM && used >= MAX_FREE ? setFifoWarning(true) : setUploadOpen(true)}>
-          <Upload className="w-4 h-4" />রিপোর্ট আপলোড
+          <Upload className="w-4 h-4" />{t('patient.uploadReport')}
         </Button>
       </div>
       {!IS_PREMIUM && (
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-700">{used}/{MAX_FREE} ব্যবহৃত</span>
-            <span className="text-xs text-slate-500">{MAX_FREE - used} বাকি</span>
+            <span className="text-sm font-medium text-slate-700">{t('reports.usedShort', { used, max: MAX_FREE })}</span>
+            <span className="text-xs text-slate-500">{t('reports.remaining', { count: MAX_FREE - used })}</span>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-2">
             <div className={`h-2 rounded-full transition-all ${used >= MAX_FREE ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${pct}%` }} />
@@ -301,16 +311,16 @@ function ReportsTab({ patientId }: { patientId: string }) {
             <div className="mt-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-amber-700 text-sm">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                <span>সীমার কাছাকাছি। পুরনো রিপোর্ট স্বয়ংক্রিয়ভাবে মুছবে।</span>
+                <span>{t('reports.nearLimit')}</span>
               </div>
-              <Button size="sm" variant="secondary"><Star className="w-4 h-4" />প্রিমিয়াম</Button>
+              <Button size="sm" variant="secondary"><Star className="w-4 h-4" />{t('status.premium')}</Button>
             </div>
           )}
         </div>
       )}
       {reports.length === 0 ? (
         <div className="text-center py-16 text-slate-400">
-          <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" /><p className="text-sm">কোনো রিপোর্ট নেই</p>
+          <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" /><p className="text-sm">{t('reports.noReports')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -323,7 +333,7 @@ function ReportsTab({ patientId }: { patientId: string }) {
                   type="button"
                   onClick={() => window.open(r.file_url, '_blank')}
                   className="group relative w-full h-40 bg-slate-100 flex items-center justify-center overflow-hidden"
-                  aria-label={`${r.name} প্রিভিউ`}
+                  aria-label={t('reports.previewAria', { name: r.name })}
                 >
                   {isImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -342,7 +352,7 @@ function ReportsTab({ patientId }: { patientId: string }) {
                   ) : (
                     <div className="flex flex-col items-center justify-center">
                       <FileText className="w-10 h-10 text-slate-400" />
-                      <span className="mt-2 text-xs font-medium text-slate-500 uppercase">{r.name.split('.').pop() ?? 'ফাইল'}</span>
+                      <span className="mt-2 text-xs font-medium text-slate-500 uppercase">{r.name.split('.').pop() ?? t('reports.fileFallback')}</span>
                     </div>
                   )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
@@ -354,7 +364,7 @@ function ReportsTab({ patientId }: { patientId: string }) {
                   <p className="font-medium text-slate-900 text-sm truncate" title={r.name}>{r.name}</p>
                   <p className="text-xs text-slate-400 mt-0.5">{formatFileSize(r.size)} · {formatDateTime(r.uploaded_at)}</p>
                   <div className="flex gap-2 mt-3">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => window.open(r.file_url, '_blank')}><Download className="w-3.5 h-3.5" />ডাউনলোড</Button>
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => window.open(r.file_url, '_blank')}><Download className="w-3.5 h-3.5" />{t('common.download')}</Button>
                     <Button variant="ghost" size="sm" onClick={() => setDeleteId(r.id)} className="text-red-500 hover:bg-red-50"><Trash2 className="w-3.5 h-3.5" /></Button>
                   </div>
                 </div>
@@ -363,7 +373,7 @@ function ReportsTab({ patientId }: { patientId: string }) {
           })}
         </div>
       )}
-      <Modal isOpen={uploadOpen} onClose={() => { setUploadOpen(false); setSelectedFile(null) }} title="রিপোর্ট আপলোড" size="sm">
+      <Modal isOpen={uploadOpen} onClose={() => { setUploadOpen(false); setSelectedFile(null) }} title={t('patient.uploadReport')} size="sm">
         <div className="space-y-4">
           <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${dragActive ? 'border-green-500 bg-green-50' : 'border-slate-300 hover:border-slate-400'}`}
             onDragOver={e => { e.preventDefault(); setDragActive(true) }}
@@ -374,42 +384,43 @@ function ReportsTab({ patientId }: { patientId: string }) {
             ) : (
               <div>
                 <Upload className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-                <p className="text-slate-600 text-sm">ফাইল এখানে টেনে আনুন অথবা</p>
+                <p className="text-slate-600 text-sm">{t('reports.dragDrop')}</p>
                 <label className="mt-2 inline-block cursor-pointer text-green-600 text-sm font-medium hover:underline">
-                  ফাইল বেছে নিন
+                  {t('reports.chooseFile')}
                   <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={e => e.target.files?.[0] && handleFileSelect(e.target.files[0])} />
                 </label>
-                <p className="text-xs text-slate-400 mt-2">PDF, JPG, PNG · সর্বোচ্চ ১০ MB</p>
+                <p className="text-xs text-slate-400 mt-2">{t('reports.fileTypes')}</p>
               </div>
             )}
           </div>
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => { setUploadOpen(false); setSelectedFile(null) }}>বাতিল</Button>
-            <Button onClick={() => selectedFile && uploadMutation.mutate(selectedFile)} disabled={!selectedFile} loading={uploadMutation.isPending}>আপলোড করুন</Button>
+            <Button variant="outline" onClick={() => { setUploadOpen(false); setSelectedFile(null) }}>{t('common.cancel')}</Button>
+            <Button onClick={() => selectedFile && uploadMutation.mutate(selectedFile)} disabled={!selectedFile} loading={uploadMutation.isPending}>{t('reports.uploadAction')}</Button>
           </div>
         </div>
       </Modal>
-      <Modal isOpen={fifoWarning} onClose={() => setFifoWarning(false)} title="সতর্কতা" size="sm">
+      <Modal isOpen={fifoWarning} onClose={() => setFifoWarning(false)} title={t('common.warning')} size="sm">
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-slate-700">আপনার সংরক্ষণ সীমা পূর্ণ। নতুন রিপোর্ট আপলোড করলে <strong>সবচেয়ে পুরনো রিপোর্টটি স্বয়ংক্রিয়ভাবে মুছে যাবে</strong>।</p>
+            <p className="text-sm text-slate-700">{t('reports.fifoWarning')}</p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" className="flex-1" onClick={() => setFifoWarning(false)}>বাতিল</Button>
-            <Button className="flex-1" onClick={() => { setFifoWarning(false); setUploadOpen(true) }}>তবুও আপলোড করুন</Button>
+            <Button variant="outline" className="flex-1" onClick={() => setFifoWarning(false)}>{t('common.cancel')}</Button>
+            <Button className="flex-1" onClick={() => { setFifoWarning(false); setUploadOpen(true) }}>{t('reports.uploadAnyway')}</Button>
           </div>
         </div>
       </Modal>
-      <ConfirmDialog isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={() => deleteId && deleteMutation.mutate(deleteId)} title="রিপোর্ট মুছুন" message="এই রিপোর্টটি মুছে ফেলতে চান?" isLoading={deleteMutation.isPending} />
+      <ConfirmDialog isOpen={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={() => deleteId && deleteMutation.mutate(deleteId)} title={t('reports.deleteTitle')} message={t('reports.deleteConfirm')} isLoading={deleteMutation.isPending} />
     </div>
   )
 }
 
 // ── Tab: গোপনীয়তা ────────────────────────────────────────────────────────────
 function PrivacyTab({ patientId }: { patientId: string }) {
+  const { t } = useTranslation()
   const actionIcons  = { searched: Search, viewed: Eye, downloaded: Download, shared: Share2 }
-  const actionLabels = { searched: 'অনুসন্ধান করেছেন', viewed: 'দেখেছেন', downloaded: 'ডাউনলোড করেছেন', shared: 'শেয়ার করেছেন' }
+  const actionLabelKeys = { searched: 'privacy.searchedAction', viewed: 'privacy.viewedAction', downloaded: 'privacy.downloadedAction', shared: 'privacy.sharedAction' }
   const { data: logs = [] } = useQuery({ queryKey: ['privacy-log', patientId], queryFn: () => api.patient.getPrivacyLog(patientId), staleTime: 60_000 })
   const sorted     = [...logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
   const totalViews    = logs.filter(l => l.action === 'viewed').length
@@ -418,17 +429,17 @@ function PrivacyTab({ patientId }: { patientId: string }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={Eye}      label="মোট দেখা হয়েছে" value={totalViews}    color="blue"  />
-        <StatCard icon={Download} label="মোট ডাউনলোড"   value={totalDl}       color="green" />
-        <StatCard icon={Search}   label="মোট অনুসন্ধান"   value={totalSearches} color="teal"  />
+        <StatCard icon={Eye}      label={t('privacy.totalViews')}     value={totalViews}    color="blue"  />
+        <StatCard icon={Download} label={t('privacy.totalDownloads')} value={totalDl}       color="green" />
+        <StatCard icon={Search}   label={t('privacy.totalSearches')}  value={totalSearches} color="teal"  />
       </div>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
           <ShieldCheck className="w-5 h-5 text-green-600" />
-          <h3 className="font-semibold text-slate-900 text-sm">প্রবেশ লগ</h3>
+          <h3 className="font-semibold text-slate-900 text-sm">{t('privacy.accessLogTitle')}</h3>
         </div>
         {sorted.length === 0 ? (
-          <p className="text-center text-sm text-slate-400 py-12">কোনো প্রবেশ লগ নেই</p>
+          <p className="text-center text-sm text-slate-400 py-12">{t('privacy.noLogs')}</p>
         ) : (
           <div className="divide-y divide-slate-50">
             {sorted.map(log => {
@@ -438,12 +449,12 @@ function PrivacyTab({ patientId }: { patientId: string }) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900">{log.accessor_name}</p>
                     <p className="text-xs text-slate-400 mt-0.5 truncate">
-                      {log.report_name || (log.action === 'searched' ? 'রোগী প্রোফাইল' : 'নেই')}
+                      {log.report_name || (log.action === 'searched' ? t('privacy.patientProfile') : t('common.none'))}
                     </p>
                   </div>
                   <StatusBadge status={log.accessor_role} />
                   <div className="flex items-center gap-1.5 text-xs text-slate-500 whitespace-nowrap">
-                    <Icon className="w-3.5 h-3.5" />{actionLabels[log.action]}
+                    <Icon className="w-3.5 h-3.5" />{t(actionLabelKeys[log.action])}
                   </div>
                   <span className="text-xs text-slate-400 whitespace-nowrap hidden sm:block">{formatDateTime(log.timestamp)}</span>
                 </div>
@@ -459,16 +470,16 @@ function PrivacyTab({ patientId }: { patientId: string }) {
 // ── Tab definitions ───────────────────────────────────────────────────────────
 type TabId = 'metrics' | 'reports' | 'privacy'
 
-const patientTabs: { id: TabId; label: string }[] = [
-  { id: 'metrics', label: 'স্বাস্থ্য পরিমাপ' },
-  { id: 'reports', label: 'রিপোর্ট'          },
-  { id: 'privacy', label: 'গোপনীয়তা লগ'     },
+const patientTabs: { id: TabId; labelKey: string }[] = [
+  { id: 'metrics', labelKey: 'patient.metrics'  },
+  { id: 'reports', labelKey: 'patient.reports'  },
+  { id: 'privacy', labelKey: 'privacy.title'    },
 ]
 
-const portalLink: Partial<Record<Role, { href: string; label: string; cls: string }>> = {
-  owner:       { href: '/owner',       label: 'Owner Portal',       cls: 'text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100'   },
-  manager:     { href: '/manager',     label: 'Manager Portal',     cls: 'text-teal-600 bg-teal-50 border-teal-200 hover:bg-teal-100'   },
-  pathologist: { href: '/pathologist', label: 'Pathologist Portal', cls: 'text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100' },
+const portalLink: Partial<Record<Role, { href: string; labelKey: string; cls: string }>> = {
+  owner:       { href: '/owner',       labelKey: 'portal.owner',       cls: 'text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100'   },
+  manager:     { href: '/manager',     labelKey: 'portal.manager',     cls: 'text-teal-600 bg-teal-50 border-teal-200 hover:bg-teal-100'   },
+  pathologist: { href: '/pathologist', labelKey: 'portal.pathologist', cls: 'text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100' },
 }
 
 // ── Edit Profile Modal ───────────────────────────────────────────────────────
@@ -478,6 +489,7 @@ const portalLink: Partial<Record<Role, { href: string; label: string; cls: strin
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function PatientDashboard() {
+  const { t } = useTranslation()
   const { user }  = useAuthStore()
   const role      = (user?.roles[0] ?? 'patient') as Role
   const portal    = portalLink[role]
@@ -499,7 +511,10 @@ export default function PatientDashboard() {
   })
   const approvedRoles = roleApplications
     .filter(a => a.status === 'Approved' && a.role_type !== 'organization_owner')
-    .map(a => ROLE_APPLICATION_TYPES.find(r => r.value === a.role_type)?.label ?? a.role_type)
+    .map(a => {
+      const labelKey = ROLE_APPLICATION_TYPES.find(r => r.value === a.role_type)?.labelKey
+      return labelKey ? t(labelKey) : a.role_type
+    })
 
   const privacyMutation = useMutation({
     mutationFn: (next: boolean) => api.patient.setPrivacy(next),
@@ -531,9 +546,9 @@ export default function PatientDashboard() {
   if (!patient) return (
     <div className="bg-white rounded-2xl border border-amber-200 p-8 text-center">
       <User className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-      <h3 className="text-lg font-bold text-slate-900 mb-1">রোগীর তথ্য পাওয়া যায়নি</h3>
+      <h3 className="text-lg font-bold text-slate-900 mb-1">{t('patientDashboard.notFoundTitle')}</h3>
       <p className="text-sm text-slate-500">
-        {error instanceof Error ? error.message : 'আপনার অ্যাকাউন্টে রোগী প্রোফাইল নেই। অ্যাডমিনের সাথে যোগাযোগ করুন।'}
+        {error instanceof Error ? error.message : t('patientDashboard.notFoundBody')}
       </p>
     </div>
   )
@@ -541,8 +556,12 @@ export default function PatientDashboard() {
   const isPremium     = patient.subscription_tier === 'Premium'
   const isHivPositive = patient.hiv_status === 'Positive'
   const isPrivate     = !!patient.is_private
-  const genderLabel   = patient.gender === 'Male' ? 'পুরুষ' : patient.gender === 'Female' ? 'মহিলা' : 'অন্যান্য'
+  const genderLabel   = patient.gender === 'Male' ? t('patient.male') : patient.gender === 'Female' ? t('patient.female') : t('patient.other')
   const conditions    = (patient.conditions ?? []) as PatientCondition[]
+  // Age is derived from date_of_birth once the patient has set one (see
+  // settings-modal.tsx); older profiles without a DOB fall back to the
+  // stored `age` value.
+  const displayAge    = patient.date_of_birth ? calculateAge(patient.date_of_birth) : patient.age
 
   return (
     <div className="space-y-6">
@@ -560,22 +579,22 @@ export default function PatientDashboard() {
             {portal && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border bg-white/90 backdrop-blur text-slate-700 border-white/60 shadow-sm">
                 {role === 'owner' ? <Building2 className="w-3 h-3" /> : role === 'manager' ? <UserCheck className="w-3 h-3" /> : <Microscope className="w-3 h-3" />}
-                {role === 'owner' ? 'মালিক' : role === 'manager' ? 'ম্যানেজার' : 'প্যাথলজিস্ট'}
+                {role === 'owner' ? t('role.owner') : role === 'manager' ? t('role.manager') : t('role.pathologist')}
               </span>
             )}
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${
               isPremium ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-white/90 backdrop-blur text-slate-600 border-white/60'
             }`}>
               {isPremium && <Crown className="w-3 h-3" />}
-              {isPremium ? 'প্রিমিয়াম' : 'ফ্রি'}
+              {isPremium ? t('status.premium') : t('status.free')}
             </span>
             <button
               type="button"
               onClick={() => privacyMutation.mutate(!isPrivate)}
               disabled={privacyMutation.isPending}
               title={isPrivate
-                ? 'ক্লিক করে প্রকাশ্য করুন — ডাক্তার আপনার প্রোফাইল খুঁজে পাবেন'
-                : 'ক্লিক করে ব্যক্তিগত করুন — ডাক্তার আপনার প্রোফাইল খুঁজে পাবেন না'}
+                ? t('patientDashboard.makePublicHint')
+                : t('patientDashboard.makePrivateHint')}
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-sm transition-all disabled:opacity-60 ${
                 isPrivate
                   ? 'bg-slate-800 text-white border-slate-700 hover:bg-slate-900'
@@ -583,7 +602,7 @@ export default function PatientDashboard() {
               }`}
             >
               {isPrivate ? <Lock className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
-              {isPrivate ? 'ব্যক্তিগত' : 'প্রকাশ্য'}
+              {isPrivate ? t('patientDashboard.private') : t('patientDashboard.public')}
             </button>
           </div>
         </div>
@@ -614,7 +633,7 @@ export default function PatientDashboard() {
                 <p className="text-[11px] sm:text-xs font-mono text-slate-400 mt-0.5 tracking-widest">{patient.health_id}</p>
                 <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
-                    <Calendar className="w-3 h-3" />{patient.age} বছর
+                    <Calendar className="w-3 h-3" />{t('patientDashboard.ageYears', { age: displayAge })}
                   </span>
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
                     {genderLabel}
@@ -640,12 +659,12 @@ export default function PatientDashboard() {
             <div className="mt-4 px-3 py-2.5 bg-amber-50/70 rounded-xl border border-amber-100">
               <div className="flex items-center gap-2 mb-1.5">
                 <HeartPulse className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">দীর্ঘমেয়াদী রোগ</p>
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{t('patientDashboard.chronicConditions')}</p>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {PATIENT_CONDITIONS.filter(c => conditions.includes(c.value)).map(c => (
                   <span key={c.value} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-100 text-amber-800 ring-1 ring-amber-300">
-                    {c.label}
+                    {t(c.labelKey)}
                   </span>
                 ))}
               </div>
@@ -662,7 +681,7 @@ export default function PatientDashboard() {
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 activeTab === tab.id ? 'bg-white text-green-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}>
-              {tab.label}
+              {t(tab.labelKey)}
             </button>
           ))}
         </div>

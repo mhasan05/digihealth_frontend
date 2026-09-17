@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/badge'
 import { Table, TableHead, TableBody, TableRow, TableCell } from '@/components/ui/table'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { StaffImportModal } from '@/components/shared/staff-import-modal'
@@ -20,28 +21,9 @@ import { formatDate } from '@/lib/utils'
 import { Pencil, Trash2, UserPlus } from 'lucide-react'
 import type { MedicalAssistant } from '@/types'
 
-const maSchema = z.object({
-  name: z.string().min(2, 'নাম দিন'),
-  phone: z.string().min(11, 'ফোন নম্বর দিন'),
-  ward: z.string().min(2, 'ওয়ার্ড দিন'),
-  status: z.enum(['Active', 'Inactive', 'On-leave']),
-})
-
-type MAForm = z.infer<typeof maSchema>
-
-const statusVariantMap: Record<string, 'green' | 'gray' | 'amber'> = {
-  Active: 'green',
-  Inactive: 'gray',
-  'On-leave': 'amber',
-}
-
-const statusLabelMap: Record<string, string> = {
-  Active: 'সক্রিয়',
-  Inactive: 'নিষ্ক্রিয়',
-  'On-leave': 'ছুটিতে',
-}
-
 export default function MedicalAssistantsPage() {
+  const { t } = useTranslation()
+  const roleLabel = t('roleApplicationType.medicalAssistant')
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
   const queryClient = useQueryClient()
@@ -49,18 +31,25 @@ export default function MedicalAssistantsPage() {
   const [editRow, setEditRow] = useState<MedicalAssistant | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  const maSchema = useMemo(() => z.object({
+    name: z.string().min(2, t('settings.nameRequired')),
+    phone: z.string().min(11, t('auth.validPhone')),
+    ward: z.string().min(2, t('staffPage.wardRequired')),
+    status: z.enum(['Active', 'Inactive', 'On-leave']),
+  }), [t])
+
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['medical-assistants', hospitalId],
     queryFn: () => api.owner.getMedicalAssistants(hospitalId),
   })
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<MAForm>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<z.infer<typeof maSchema>>({
     resolver: zodResolver(maSchema),
     defaultValues: { status: 'Active' },
   })
 
   const updateMutation = useMutation({
-    mutationFn: (data: MAForm) => api.owner.updateMedicalAssistant(editRow!.id, data),
+    mutationFn: (data: z.infer<typeof maSchema>) => api.owner.updateMedicalAssistant(editRow!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medical-assistants', hospitalId] })
       setEditRow(null)
@@ -87,30 +76,30 @@ export default function MedicalAssistantsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">মেডিকেল অ্যাসিস্ট্যান্ট ব্যবস্থাপনা</h2>
-          <p className="text-sm text-slate-500 mt-0.5">মোট {rows.length}জন মেডিকেল অ্যাসিস্ট্যান্ট</p>
+          <h2 className="text-xl font-bold text-slate-900">{t('staffPage.title', { role: roleLabel })}</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{t('staffPage.totalCount', { count: rows.length, role: roleLabel })}</p>
         </div>
         <Button onClick={() => setImportOpen(true)}>
           <UserPlus className="w-4 h-4" />
-          আবেদনকারী থেকে যুক্ত করুন
+          {t('staffPage.addFromApplicants')}
         </Button>
       </div>
 
       <div className="flex items-start gap-2 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700">
-        মেডিকেল অ্যাসিস্ট্যান্ট শুধু অ্যাডমিন-অনুমোদিত আবেদনকারীদের তালিকা থেকেই যুক্ত করা যায় — সরাসরি নতুন তৈরি করা যায় না।
+        {t('staffPage.onlyFromApplicantsHint', { role: roleLabel })}
       </div>
 
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <Table>
-          <TableHead columns={['নাম', 'ফোন', 'ওয়ার্ড', 'স্ট্যাটাস', 'যোগদান', 'কার্যক্রম']} />
-          <TableBody isEmpty={rows.length === 0} emptyMessage="কোনো মেডিকেল অ্যাসিস্ট্যান্ট নেই" colSpan={6}>
+          <TableHead columns={[t('common.name'), t('common.phone'), t('admission.ward'), t('common.status'), t('staffPage.joined'), t('common.actions')]} />
+          <TableBody isEmpty={rows.length === 0} emptyMessage={t('staffPage.noStaff', { role: roleLabel })} colSpan={6}>
             {rows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell><span className="font-medium">{r.name}</span></TableCell>
                 <TableCell>{r.phone}</TableCell>
                 <TableCell>{r.ward}</TableCell>
                 <TableCell>
-                  <Badge variant={statusVariantMap[r.status]}>{statusLabelMap[r.status]}</Badge>
+                  <StatusBadge status={r.status} />
                 </TableCell>
                 <TableCell>{formatDate(r.created_at)}</TableCell>
                 <TableCell>
@@ -118,14 +107,14 @@ export default function MedicalAssistantsPage() {
                     <button
                       onClick={() => handleOpenEdit(r)}
                       className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                      aria-label="সম্পাদনা"
+                      aria-label={t('common.edit')}
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setDeleteId(r.id)}
                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                      aria-label="মুছুন"
+                      aria-label={t('common.delete')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -143,9 +132,9 @@ export default function MedicalAssistantsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="font-semibold text-slate-900">{r.name}</p>
-                <p className="text-sm text-slate-500">{r.phone} | ওয়ার্ড: {r.ward}</p>
+                <p className="text-sm text-slate-500">{r.phone} | {t('admission.ward')}: {r.ward}</p>
                 <div className="mt-2">
-                  <Badge variant={statusVariantMap[r.status]}>{statusLabelMap[r.status]}</Badge>
+                  <StatusBadge status={r.status} />
                 </div>
               </div>
               <div className="flex gap-1">
@@ -164,29 +153,29 @@ export default function MedicalAssistantsPage() {
       <Modal
         isOpen={!!editRow}
         onClose={() => { setEditRow(null); reset() }}
-        title="সম্পাদনা করুন"
+        title={t('staffPage.editTitle', { role: roleLabel })}
         size="sm"
       >
         <form onSubmit={handleSubmit(data => updateMutation.mutate(data))} className="space-y-4">
-          <Input label="নাম" error={errors.name?.message} {...register('name')} />
-          <Input label="ফোন নম্বর" error={errors.phone?.message} {...register('phone')} />
-          <Input label="ওয়ার্ড" error={errors.ward?.message} {...register('ward')} />
+          <Input label={t('common.name')} error={errors.name?.message} {...register('name')} />
+          <Input label={t('common.phone')} error={errors.phone?.message} {...register('phone')} />
+          <Input label={t('admission.ward')} error={errors.ward?.message} {...register('ward')} />
           <Select
-            label="স্ট্যাটাস"
+            label={t('common.status')}
             error={errors.status?.message}
             options={[
-              { value: 'Active', label: 'সক্রিয়' },
-              { value: 'Inactive', label: 'নিষ্ক্রিয়' },
-              { value: 'On-leave', label: 'ছুটিতে' },
+              { value: 'Active', label: t('status.active') },
+              { value: 'Inactive', label: t('status.inactive') },
+              { value: 'On-leave', label: t('status.onLeave') },
             ]}
             {...register('status')}
           />
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => { setEditRow(null); reset() }}>
-              বাতিল
+              {t('common.cancel')}
             </Button>
             <Button type="submit" loading={updateMutation.isPending}>
-              আপডেট করুন
+              {t('staffPage.update')}
             </Button>
           </div>
         </form>
@@ -196,15 +185,15 @@ export default function MedicalAssistantsPage() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        title="মুছুন"
-        message="আপনি কি এই মেডিকেল অ্যাসিস্ট্যান্টকে মুছে ফেলতে চান?"
+        title={t('staffPage.deleteTitle', { role: roleLabel })}
+        message={t('staffPage.deleteConfirm', { role: roleLabel })}
         isLoading={deleteMutation.isPending}
       />
 
       <StaffImportModal
         isOpen={importOpen}
         onClose={() => setImportOpen(false)}
-        roleLabel="মেডিকেল অ্যাসিস্ট্যান্ট"
+        roleLabel={roleLabel}
         queryKeyPrefix="medical-assistant"
         search={api.owner.searchAvailableMedicalAssistants}
         doImport={api.owner.importMedicalAssistant}

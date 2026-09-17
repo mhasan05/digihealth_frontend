@@ -27,6 +27,8 @@ interface AuthStore {
   login: (user: User, token: string) => void
   logout: () => void
   switchPortal: (portal: Portal) => void
+  /** Patch fields on the stored user (e.g. after a profile edit) without a full re-login. */
+  updateUser: (patch: Partial<User>) => void
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -49,6 +51,7 @@ export const useAuthStore = create<AuthStore>()(
         set({ user: null, accessToken: null, isAuthenticated: false, activePortal: 'user', availablePortals: ['user'] })
       },
       switchPortal: (portal) => set({ activePortal: portal }),
+      updateUser: (patch) => set((s) => (s.user ? { user: { ...s.user, ...patch } } : {})),
     }),
     {
       name: 'digihealth-auth',

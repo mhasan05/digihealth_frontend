@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ const PATIENT_ID = 'pt1'
 const IS_PREMIUM = false
 
 export default function PatientReportsPage() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [fifoWarning, setFifoWarning] = useState(false)
@@ -59,7 +61,7 @@ export default function PatientReportsPage() {
 
   const handleFileSelect = (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
-      alert('ফাইলের আকার সর্বোচ্চ ১০ MB হতে পারে')
+      alert(t('reports.fileSizeError'))
       return
     }
     setSelectedFile(file)
@@ -81,22 +83,22 @@ export default function PatientReportsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">আমার রিপোর্ট</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t('nav.myReports')}</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            {usedCount}/{MAX_FREE_REPORTS} রিপোর্ট ব্যবহৃত
+            {t('reports.usedCount', { used: usedCount, max: MAX_FREE_REPORTS })}
           </p>
         </div>
         <Button onClick={handleUploadClick}>
           <Upload className="w-4 h-4" />
-          রিপোর্ট আপলোড
+          {t('patient.uploadReport')}
         </Button>
       </div>
 
       {!IS_PREMIUM && (
         <Card padding="sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-700">{usedCount}/{MAX_FREE_REPORTS} রিপোর্ট ব্যবহৃত</span>
-            <span className="text-xs text-slate-500">{MAX_FREE_REPORTS - usedCount} বাকি</span>
+            <span className="text-sm font-medium text-slate-700">{t('reports.usedCount', { used: usedCount, max: MAX_FREE_REPORTS })}</span>
+            <span className="text-xs text-slate-500">{t('reports.remaining', { count: MAX_FREE_REPORTS - usedCount })}</span>
           </div>
           <div className="w-full bg-slate-200 rounded-full h-2">
             <div
@@ -108,11 +110,11 @@ export default function PatientReportsPage() {
             <div className="mt-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-amber-700 text-sm">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                <span>সীমার কাছাকাছি। পুরনো রিপোর্ট স্বয়ংক্রিয়ভাবে মুছবে।</span>
+                <span>{t('reports.nearLimit')}</span>
               </div>
               <Button size="sm" variant="secondary">
                 <Star className="w-4 h-4" />
-                প্রিমিয়াম
+                {t('status.premium')}
               </Button>
             </div>
           )}
@@ -122,8 +124,8 @@ export default function PatientReportsPage() {
       {reports.length === 0 ? (
         <Card className="py-16 text-center">
           <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-slate-500">কোনো রিপোর্ট নেই</p>
-          <p className="text-sm text-slate-400 mt-1">আপনার মেডিকেল রিপোর্ট আপলোড করুন</p>
+          <p className="text-slate-500">{t('reports.noReports')}</p>
+          <p className="text-sm text-slate-400 mt-1">{t('reports.noReportsHint')}</p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -138,7 +140,7 @@ export default function PatientReportsPage() {
                     type="button"
                     onClick={() => window.open(report.file_url, '_blank')}
                     className="group relative w-full h-40 bg-slate-100 flex items-center justify-center overflow-hidden"
-                    aria-label={`${report.name} প্রিভিউ`}
+                    aria-label={t('reports.previewAria', { name: report.name })}
                   >
                     {isImage ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -162,7 +164,7 @@ export default function PatientReportsPage() {
                       <div className="flex flex-col items-center justify-center">
                         <FileText className="w-10 h-10 text-slate-400" />
                         <span className="mt-2 text-xs font-medium text-slate-500 uppercase">
-                          {report.name.split('.').pop() ?? 'ফাইল'}
+                          {report.name.split('.').pop() ?? t('reports.fileFallback')}
                         </span>
                       </div>
                     )}
@@ -183,7 +185,7 @@ export default function PatientReportsPage() {
                         onClick={() => window.open(report.file_url, '_blank')}
                       >
                         <Download className="w-3.5 h-3.5" />
-                        ডাউনলোড
+                        {t('common.download')}
                       </Button>
                       <Button
                         variant="ghost"
@@ -201,7 +203,7 @@ export default function PatientReportsPage() {
         </div>
       )}
 
-      <Modal isOpen={uploadOpen} onClose={() => { setUploadOpen(false); setSelectedFile(null) }} title="রিপোর্ট আপলোড" size="sm">
+      <Modal isOpen={uploadOpen} onClose={() => { setUploadOpen(false); setSelectedFile(null) }} title={t('patient.uploadReport')} size="sm">
         <div className="space-y-4">
           <div
             className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
@@ -220,9 +222,9 @@ export default function PatientReportsPage() {
             ) : (
               <div>
                 <Upload className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-                <p className="text-slate-600 text-sm">ফাইল এখানে টেনে আনুন অথবা</p>
+                <p className="text-slate-600 text-sm">{t('reports.dragDrop')}</p>
                 <label className="mt-2 inline-block cursor-pointer text-green-600 text-sm font-medium hover:underline">
-                  ফাইল বেছে নিন
+                  {t('reports.chooseFile')}
                   <input
                     type="file"
                     className="hidden"
@@ -230,36 +232,34 @@ export default function PatientReportsPage() {
                     onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
                   />
                 </label>
-                <p className="text-xs text-slate-400 mt-2">PDF, JPG, PNG · সর্বোচ্চ ১০ MB</p>
+                <p className="text-xs text-slate-400 mt-2">{t('reports.fileTypes')}</p>
               </div>
             )}
           </div>
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => { setUploadOpen(false); setSelectedFile(null) }}>বাতিল</Button>
+            <Button variant="outline" onClick={() => { setUploadOpen(false); setSelectedFile(null) }}>{t('common.cancel')}</Button>
             <Button
               onClick={() => selectedFile && uploadMutation.mutate(selectedFile)}
               disabled={!selectedFile}
               loading={uploadMutation.isPending}
             >
-              আপলোড করুন
+              {t('reports.uploadAction')}
             </Button>
           </div>
         </div>
       </Modal>
 
-      <Modal isOpen={fifoWarning} onClose={() => setFifoWarning(false)} title="সতর্কতা" size="sm">
+      <Modal isOpen={fifoWarning} onClose={() => setFifoWarning(false)} title={t('common.warning')} size="sm">
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-slate-700">
-              আপনার সংরক্ষণ সীমা পূর্ণ হয়ে গেছে। নতুন রিপোর্ট আপলোড করলে <strong>সবচেয়ে পুরনো রিপোর্টটি স্বয়ংক্রিয়ভাবে মুছে যাবে</strong>।
-            </p>
+            <p className="text-sm text-slate-700">{t('reports.fifoWarning')}</p>
           </div>
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <p className="text-xs text-amber-700">প্রিমিয়াম আপগ্রেড করলে সীমাহীন রিপোর্ট সংরক্ষণ করতে পারবেন।</p>
+            <p className="text-xs text-amber-700">{t('reports.premiumHint')}</p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" className="flex-1" onClick={() => setFifoWarning(false)}>বাতিল</Button>
+            <Button variant="outline" className="flex-1" onClick={() => setFifoWarning(false)}>{t('common.cancel')}</Button>
             <Button
               className="flex-1"
               onClick={() => {
@@ -267,7 +267,7 @@ export default function PatientReportsPage() {
                 setUploadOpen(true)
               }}
             >
-              তবুও আপলোড করুন
+              {t('reports.uploadAnyway')}
             </Button>
           </div>
         </div>
@@ -277,8 +277,8 @@ export default function PatientReportsPage() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        title="রিপোর্ট মুছুন"
-        message="আপনি কি এই রিপোর্টটি মুছে ফেলতে চান? এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।"
+        title={t('reports.deleteTitle')}
+        message={t('reports.deleteConfirmPermanent')}
         isLoading={deleteMutation.isPending}
       />
     </div>

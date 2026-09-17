@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Search, Microscope } from 'lucide-react'
 import type { Pathologist } from '@/types'
 
@@ -23,6 +24,7 @@ export function PathologistSearch({
   error,
   optional = false,
 }: PathologistSearchProps) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [open,  setOpen]  = useState(false)
   const wrapRef           = useRef<HTMLDivElement>(null)
@@ -49,7 +51,7 @@ export function PathologistSearch({
   if (selected) {
     return (
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">প্যাথলজিস্ট</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('searchWidget.pathologistLabel')}</label>
         <div className="flex items-center justify-between px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
@@ -58,16 +60,16 @@ export function PathologistSearch({
             <div>
               <p className="text-sm font-semibold text-slate-900">{selected.name}</p>
               <p className="text-xs text-slate-500">
-                {selected.specialization || 'General'}
+                {selected.specialization || t('searchWidget.general')}
                 {selected.active_test_count != null && (
-                  <span className="ml-1 text-amber-600">· সক্রিয় টেস্ট: {selected.active_test_count}</span>
+                  <span className="ml-1 text-amber-600">· {t('searchWidget.activeTests')}: {selected.active_test_count}</span>
                 )}
               </p>
             </div>
           </div>
           <button type="button" onClick={onClear}
             className="text-xs font-medium text-amber-600 hover:text-amber-800 transition-colors">
-            পরিবর্তন
+            {t('searchWidget.change')}
           </button>
         </div>
       </div>
@@ -78,7 +80,7 @@ export function PathologistSearch({
   return (
     <div ref={wrapRef}>
       <label className="block text-sm font-medium text-slate-700 mb-1.5">
-        প্যাথলজিস্ট খুঁজুন {optional && <span className="text-slate-400 font-normal">(ঐচ্ছিক)</span>}
+        {t('searchWidget.pathologistSearchLabel')} {optional && <span className="text-slate-400 font-normal">{t('searchWidget.optional')}</span>}
       </label>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -87,7 +89,7 @@ export function PathologistSearch({
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          placeholder={empty ? 'কোনো প্যাথলজিস্ট নেই' : 'নাম বা বিশেষজ্ঞতা দিয়ে খুঁজুন...'}
+          placeholder={empty ? t('searchWidget.pathologistNone') : t('searchWidget.pathologistPlaceholder')}
           disabled={empty}
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all disabled:bg-slate-50 disabled:cursor-not-allowed"
         />
@@ -103,9 +105,9 @@ export function PathologistSearch({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-slate-900 truncate">{p.name}</p>
                   <p className="text-xs text-slate-400 truncate">
-                    {p.specialization || 'General'}
+                    {p.specialization || t('searchWidget.general')}
                     {p.active_test_count != null && (
-                      <span className="ml-1 text-amber-600">· সক্রিয় টেস্ট: {p.active_test_count}</span>
+                      <span className="ml-1 text-amber-600">· {t('searchWidget.activeTests')}: {p.active_test_count}</span>
                     )}
                   </p>
                 </div>
@@ -114,7 +116,7 @@ export function PathologistSearch({
           </div>
         )}
         {open && q.length >= 1 && results.length === 0 && !empty && (
-          <p className="mt-1.5 text-xs text-slate-400 pl-1">কোনো প্যাথলজিস্ট পাওয়া যায়নি</p>
+          <p className="mt-1.5 text-xs text-slate-400 pl-1">{t('searchWidget.pathologistNotFound')}</p>
         )}
       </div>
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}

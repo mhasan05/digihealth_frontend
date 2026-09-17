@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { StatCard } from '@/components/shared/stat-card'
@@ -18,14 +19,15 @@ const actionIcons = {
   shared: Share2,
 }
 
-const actionLabels = {
-  searched: 'অনুসন্ধান করেছেন',
-  viewed: 'দেখেছেন',
-  downloaded: 'ডাউনলোড করেছেন',
-  shared: 'শেয়ার করেছেন',
+const actionLabelKeys = {
+  searched: 'privacy.searchedAction',
+  viewed: 'privacy.viewedAction',
+  downloaded: 'privacy.downloadedAction',
+  shared: 'privacy.sharedAction',
 }
 
 export default function PrivacyPage() {
+  const { t } = useTranslation()
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['privacy-log', PATIENT_ID],
     queryFn: () => api.patient.getPrivacyLog(PATIENT_ID),
@@ -40,26 +42,26 @@ export default function PrivacyPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-900">গোপনীয়তা লগ</h2>
-        <p className="text-sm text-slate-500 mt-1">আপনার রিপোর্টে কে কখন প্রবেশ করেছেন তার বিবরণ</p>
+        <h2 className="text-xl font-bold text-slate-900">{t('privacy.title')}</h2>
+        <p className="text-sm text-slate-500 mt-1">{t('privacy.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={Eye} label="মোট দেখা হয়েছে" value={totalViews} color="blue" />
-        <StatCard icon={Download} label="মোট ডাউনলোড" value={totalDownloads} color="green" />
-        <StatCard icon={Search} label="মোট অনুসন্ধান" value={totalSearches} color="teal" />
+        <StatCard icon={Eye} label={t('privacy.totalViews')} value={totalViews} color="blue" />
+        <StatCard icon={Download} label={t('privacy.totalDownloads')} value={totalDownloads} color="green" />
+        <StatCard icon={Search} label={t('privacy.totalSearches')} value={totalSearches} color="teal" />
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-2">
           <ShieldCheck className="w-5 h-5 text-green-600" />
-          <h3 className="font-semibold text-slate-900">প্রবেশ লগ</h3>
+          <h3 className="font-semibold text-slate-900">{t('privacy.accessLogTitle')}</h3>
         </div>
 
         <div className="hidden md:block">
           <Table>
-            <TableHead columns={['প্রবেশকারী', 'ভূমিকা', 'কার্যক্রম', 'রিপোর্টের নাম', 'সময়']} />
-            <TableBody isEmpty={logs.length === 0} emptyMessage="কোনো প্রবেশ লগ নেই" colSpan={5}>
+            <TableHead columns={[t('privacy.accessor'), t('privacy.role'), t('privacy.action'), t('privacy.reportName'), t('privacy.timestamp')]} />
+            <TableBody isEmpty={logs.length === 0} emptyMessage={t('privacy.noLogs')} colSpan={5}>
               {logs
                 .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
                 .map((log) => {
@@ -75,12 +77,12 @@ export default function PrivacyPage() {
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <Icon className={`w-4 h-4 ${log.action === 'downloaded' ? 'text-green-600' : log.action === 'shared' ? 'text-purple-600' : 'text-green-600'}`} />
-                          <span>{actionLabels[log.action]}</span>
+                          <span>{t(actionLabelKeys[log.action])}</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <span className="text-slate-600 text-xs">
-                          {log.report_name || (log.action === 'searched' ? <em className="text-slate-400">রোগী প্রোফাইল</em> : 'নেই')}
+                          {log.report_name || (log.action === 'searched' ? <em className="text-slate-400">{t('privacy.patientProfile')}</em> : t('common.none'))}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -95,7 +97,7 @@ export default function PrivacyPage() {
 
         <div className="md:hidden divide-y divide-slate-100">
           {logs.length === 0 ? (
-            <p className="text-center text-slate-500 py-12 text-sm">কোনো প্রবেশ লগ নেই</p>
+            <p className="text-center text-slate-500 py-12 text-sm">{t('privacy.noLogs')}</p>
           ) : (
             logs
               .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
@@ -110,11 +112,11 @@ export default function PrivacyPage() {
                       </div>
                       <div className="flex items-center gap-1 text-sm text-slate-600">
                         <Icon className="w-4 h-4" />
-                        {actionLabels[log.action]}
+                        {t(actionLabelKeys[log.action])}
                       </div>
                     </div>
                     <p className="text-xs text-slate-500 mt-2 truncate">
-                      {log.report_name || (log.action === 'searched' ? 'রোগী প্রোফাইল' : 'নেই')}
+                      {log.report_name || (log.action === 'searched' ? t('privacy.patientProfile') : t('common.none'))}
                     </p>
                     <p className="text-xs text-slate-400 mt-1">{formatDateTime(log.timestamp)}</p>
                   </div>

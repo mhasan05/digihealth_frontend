@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -19,24 +20,23 @@ import { formatDate } from '@/lib/utils'
 import { Pencil, Trash2, Search, UserPlus, Stethoscope, AlertTriangle, Info, PauseCircle } from 'lucide-react'
 import type { Doctor, RegistryDoctor } from '@/types'
 
-const attachmentSchema = z.object({
-  schedule: z.string().min(2, 'সময়সূচি দিন'),
-  status: z.enum(['Active', 'Inactive']),
-})
-
-type AttachmentForm = z.infer<typeof attachmentSchema>
-
-const editSchema = z.object({
-  schedule: z.string().min(2, 'সময়সূচি দিন'),
-  status: z.enum(['Active', 'Inactive']),
-})
-
-type EditForm = z.infer<typeof editSchema>
-
 export default function DoctorsPage() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
   const queryClient = useQueryClient()
+
+  const attachmentSchema = useMemo(() => z.object({
+    schedule: z.string().min(2, t('doctorPage.scheduleRequired')),
+    status: z.enum(['Active', 'Inactive']),
+  }), [t])
+  type AttachmentForm = z.infer<typeof attachmentSchema>
+
+  const editSchema = useMemo(() => z.object({
+    schedule: z.string().min(2, t('doctorPage.scheduleRequired')),
+    status: z.enum(['Active', 'Inactive']),
+  }), [t])
+  type EditForm = z.infer<typeof editSchema>
 
   const [attachOpen, setAttachOpen] = useState(false)
   const [pickedRegistryDoctor, setPickedRegistryDoctor] = useState<RegistryDoctor | null>(null)
@@ -122,27 +122,32 @@ export default function DoctorsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">ডাক্তার ব্যবস্থাপনা</h2>
-          <p className="text-sm text-slate-500 mt-0.5">মোট {doctors.length}জন ডাক্তার</p>
+          <h2 className="text-xl font-bold text-slate-900">{t('doctorPage.title')}</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{t('doctorPage.totalCount', { count: doctors.length })}</p>
         </div>
         <Button onClick={openAttach}>
           <UserPlus className="w-4 h-4" />
-          রেজিস্ট্রি থেকে যুক্ত করুন
+          {t('doctorPage.attachFromRegistry')}
         </Button>
       </div>
 
       <div className="flex items-start gap-2 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700">
         <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-        <span>
-          আপনি শুধুমাত্র আপনার হাসপাতালের জন্য সময়সূচি ও স্ট্যাটাস পরিবর্তন করতে পারবেন।
-          ডাক্তারের সিস্টেম-ব্যাপী প্রাপ্যতা অ্যাডমিন নিয়ন্ত্রণ করেন · অ্যাডমিন কাউকে অপ্রাপ্য করলে আপনি তাকে সক্রিয় করতে পারবেন না।
-        </span>
+        <span>{t('doctorPage.scopeHint')}</span>
       </div>
 
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <Table>
-          <TableHead columns={['নাম', 'BMDC রেজি. নং', 'বিশেষজ্ঞতা', 'ফোন', 'সময়সূচি', 'স্ট্যাটাস', 'কার্যক্রম']} />
-          <TableBody isEmpty={doctors.length === 0} emptyMessage="কোনো ডাক্তার যুক্ত নেই" colSpan={7}>
+          <TableHead columns={[
+            t('common.name'),
+            t('doctorPage.bmdcNo'),
+            t('doctorPage.specialization'),
+            t('common.phone'),
+            t('doctorPage.schedule'),
+            t('common.status'),
+            t('common.actions'),
+          ]} />
+          <TableBody isEmpty={doctors.length === 0} emptyMessage={t('doctorPage.noDoctorsAttached')} colSpan={7}>
             {doctors.map((d) => {
               const unavailable = d.availability_status === 'Unavailable'
               return (
@@ -156,7 +161,7 @@ export default function DoctorsPage() {
                   <TableCell>
                     {d.bmdc_registration_no
                       ? <span className="font-mono text-xs text-slate-700">{d.bmdc_registration_no}</span>
-                      : <span className="text-xs text-slate-400">নেই</span>}
+                      : <span className="text-xs text-slate-400">{t('doctorPage.noneShort')}</span>}
                   </TableCell>
                   <TableCell>{d.specialization}</TableCell>
                   <TableCell>{d.phone}</TableCell>
@@ -166,11 +171,11 @@ export default function DoctorsPage() {
                   <TableCell>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <Badge variant={d.status === 'Active' && !unavailable ? 'green' : 'gray'}>
-                        {d.status === 'Active' ? 'সক্রিয়' : 'নিষ্ক্রিয়'}
+                        {d.status === 'Active' ? t('status.active') : t('status.inactive')}
                       </Badge>
                       {unavailable && (
                         <Badge variant="red">
-                          <PauseCircle className="w-3 h-3" /> অ্যাডমিন অপ্রাপ্য
+                          <PauseCircle className="w-3 h-3" /> {t('doctorPage.adminUnavailable')}
                         </Badge>
                       )}
                     </div>
@@ -179,12 +184,12 @@ export default function DoctorsPage() {
                     <div className="flex items-center gap-2">
                       <button onClick={() => openEdit(d)}
                         className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                        aria-label="সম্পাদনা">
+                        aria-label={t('common.edit')}>
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button onClick={() => setDetachDoctor(d)}
                         className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        aria-label="যুক্ততা বাতিল করুন">
+                        aria-label={t('doctorPage.detach')}>
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -211,9 +216,9 @@ export default function DoctorsPage() {
                   )}
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <Badge variant={d.status === 'Active' && !unavailable ? 'green' : 'gray'}>
-                      {d.status === 'Active' ? 'সক্রিয়' : 'নিষ্ক্রিয়'}
+                      {d.status === 'Active' ? t('status.active') : t('status.inactive')}
                     </Badge>
-                    {unavailable && <Badge variant="red">অ্যাডমিন অপ্রাপ্য</Badge>}
+                    {unavailable && <Badge variant="red">{t('doctorPage.adminUnavailable')}</Badge>}
                   </div>
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
@@ -234,7 +239,7 @@ export default function DoctorsPage() {
       <Modal
         isOpen={attachOpen}
         onClose={closeAttach}
-        title={pickedRegistryDoctor ? 'হাসপাতালের সাথে যুক্ত করুন' : 'রেজিস্ট্রি থেকে ডাক্তার খুঁজুন'}
+        title={pickedRegistryDoctor ? t('doctorPage.attachToHospitalTitle') : t('doctorPage.findFromRegistryTitle')}
         size="sm"
       >
         {!pickedRegistryDoctor ? (
@@ -248,16 +253,16 @@ export default function DoctorsPage() {
               specialization={pickedRegistryDoctor.specialization}
             />
             <Input
-              label="সময়সূচি (যেমন: শনি-বৃহঃ, ৯টা-৫টা)"
+              label={t('doctorPage.schedulePlaceholder')}
               error={attachForm.formState.errors.schedule?.message}
               {...attachForm.register('schedule')}
             />
             <Select
-              label="স্ট্যাটাস"
+              label={t('common.status')}
               error={attachForm.formState.errors.status?.message}
               options={[
-                { value: 'Active', label: 'সক্রিয়' },
-                { value: 'Inactive', label: 'নিষ্ক্রিয়' },
+                { value: 'Active', label: t('status.active') },
+                { value: 'Inactive', label: t('status.inactive') },
               ]}
               {...attachForm.register('status')}
             />
@@ -269,11 +274,11 @@ export default function DoctorsPage() {
             )}
             <div className="flex justify-between gap-3 pt-2">
               <Button type="button" variant="ghost" onClick={() => setPickedRegistryDoctor(null)}>
-                ← অন্য ডাক্তার বাছুন
+                ← {t('doctorPage.pickAnotherDoctor')}
               </Button>
               <div className="flex gap-3 ml-auto">
-                <Button type="button" variant="outline" onClick={closeAttach}>বাতিল</Button>
-                <Button type="submit" loading={attachMutation.isPending}>যুক্ত করুন</Button>
+                <Button type="button" variant="outline" onClick={closeAttach}>{t('common.cancel')}</Button>
+                <Button type="submit" loading={attachMutation.isPending}>{t('common.add')}</Button>
               </div>
             </div>
           </form>
@@ -284,7 +289,7 @@ export default function DoctorsPage() {
       <Modal
         isOpen={!!editDoctor}
         onClose={closeEdit}
-        title="হাসপাতালের জন্য তথ্য সম্পাদনা"
+        title={t('doctorPage.editHospitalInfoTitle')}
         size="sm"
       >
         {editDoctor && (
@@ -298,23 +303,23 @@ export default function DoctorsPage() {
             {editingUnavailable && (
               <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700 flex items-start gap-2">
                 <PauseCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>এই ডাক্তার অ্যাডমিন কর্তৃক অপ্রাপ্য · সক্রিয় করা যাবে না। আবার সক্রিয় করতে অ্যাডমিনের সাথে যোগাযোগ করুন।</span>
+                <span>{t('doctorPage.unavailableNotice')}</span>
               </div>
             )}
             <Input
-              label="সময়সূচি"
+              label={t('doctorPage.schedule')}
               error={editForm.formState.errors.schedule?.message}
               {...editForm.register('schedule')}
             />
             <Select
-              label="স্ট্যাটাস"
+              label={t('common.status')}
               error={editForm.formState.errors.status?.message}
               options={
                 editingUnavailable
-                  ? [{ value: 'Inactive', label: 'নিষ্ক্রিয়' }]
+                  ? [{ value: 'Inactive', label: t('status.inactive') }]
                   : [
-                      { value: 'Active', label: 'সক্রিয়' },
-                      { value: 'Inactive', label: 'নিষ্ক্রিয়' },
+                      { value: 'Active', label: t('status.active') },
+                      { value: 'Inactive', label: t('status.inactive') },
                     ]
               }
               {...editForm.register('status')}
@@ -326,8 +331,8 @@ export default function DoctorsPage() {
               </div>
             )}
             <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={closeEdit}>বাতিল</Button>
-              <Button type="submit" loading={updateMutation.isPending}>সংরক্ষণ</Button>
+              <Button type="button" variant="outline" onClick={closeEdit}>{t('common.cancel')}</Button>
+              <Button type="submit" loading={updateMutation.isPending}>{t('staffPage.update')}</Button>
             </div>
           </form>
         )}
@@ -337,8 +342,8 @@ export default function DoctorsPage() {
         isOpen={!!detachDoctor}
         onClose={() => setDetachDoctor(null)}
         onConfirm={() => detachDoctor && detachMutation.mutate(detachDoctor.id)}
-        title="যুক্ততা বাতিল করুন"
-        message={`${detachDoctor?.name ?? ''}কে আপনার হাসপাতাল থেকে সরিয়ে নিতে চান? ডাক্তার রেজিস্ট্রিতে থাকবেন · চাইলে পরে আবার যুক্ত করতে পারবেন।`}
+        title={t('doctorPage.detachTitle')}
+        message={t('doctorPage.detachConfirm', { name: detachDoctor?.name ?? '' })}
         isLoading={detachMutation.isPending}
       />
     </div>
@@ -386,6 +391,7 @@ function RegistrySearchStep({
   onPick: (d: RegistryDoctor) => void
   onCancel: () => void
 }) {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
   const [query, setQuery] = useState('')
@@ -404,7 +410,7 @@ function RegistrySearchStep({
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-          নাম, ফোন বা BMDC রেজিস্ট্রেশন নম্বর দিয়ে খুঁজুন
+          {t('doctorPage.searchLabel')}
         </label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -413,7 +419,7 @@ function RegistrySearchStep({
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="যেমন: Rafiqul, 01744000001, A-12345"
+            placeholder={t('doctorPage.searchPlaceholder')}
             className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all"
           />
         </div>
@@ -423,15 +429,15 @@ function RegistrySearchStep({
         {query.trim().length < 1 ? (
           <div className="flex flex-col items-center justify-center h-44 text-center px-6 text-sm text-slate-400">
             <Search className="w-8 h-8 mb-2 text-slate-300" />
-            খুঁজতে শুরু করুন
+            {t('staffImport.startSearching')}
           </div>
         ) : isFetching ? (
-          <div className="flex items-center justify-center h-44 text-sm text-slate-400">খুঁজছি...</div>
+          <div className="flex items-center justify-center h-44 text-sm text-slate-400">{t('staffImport.searching')}</div>
         ) : results.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-44 text-center px-6 text-sm text-slate-500">
             <AlertTriangle className="w-6 h-6 mb-2 text-amber-400" />
-            কোনো প্রাপ্য ডাক্তার পাওয়া যায়নি বা সবাই ইতোমধ্যে যুক্ত আছেন।
-            <span className="text-xs text-slate-400 mt-1">নতুন ডাক্তার যোগ করতে অ্যাডমিনের সাথে যোগাযোগ করুন।</span>
+            {t('doctorPage.noAvailableDoctors')}
+            <span className="text-xs text-slate-400 mt-1">{t('doctorPage.contactAdminToAdd')}</span>
           </div>
         ) : (
           <ul className="divide-y divide-slate-100">
@@ -457,7 +463,7 @@ function RegistrySearchStep({
                       )}
                     </p>
                   </div>
-                  <span className="text-xs text-green-700 font-semibold whitespace-nowrap">যুক্ত করুন →</span>
+                  <span className="text-xs text-green-700 font-semibold whitespace-nowrap">{t('common.add')} →</span>
                 </button>
               </li>
             ))}
@@ -466,7 +472,7 @@ function RegistrySearchStep({
       </div>
 
       <div className="flex justify-end">
-        <Button type="button" variant="outline" onClick={onCancel}>বাতিল</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
       </div>
     </div>
   )

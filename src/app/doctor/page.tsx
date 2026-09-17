@@ -1,12 +1,14 @@
 "use client"
 
 import Link from 'next/link'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { Stethoscope, Building2, Users } from 'lucide-react'
 
 export default function DoctorDashboardPage() {
+  const { t } = useTranslation()
   const { data: me, isLoading } = useQuery({
     queryKey: ['doctor-me'],
     queryFn: () => api.doctor.getMe(),
@@ -17,8 +19,8 @@ export default function DoctorDashboardPage() {
     return (
       <div className="bg-white rounded-2xl border border-amber-200 p-8 text-center">
         <Stethoscope className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-        <h3 className="text-lg font-bold text-slate-900 mb-1">ডাক্তার প্রোফাইল পাওয়া যায়নি</h3>
-        <p className="text-sm text-slate-500">আপনার অ্যাকাউন্টে ডাক্তার প্রোফাইল নেই। অ্যাডমিনের সাথে যোগাযোগ করুন।</p>
+        <h3 className="text-lg font-bold text-slate-900 mb-1">{t('doctorDashboard.profileNotFoundTitle')}</h3>
+        <p className="text-sm text-slate-500">{t('doctorDashboard.profileNotFoundDefault')}</p>
       </div>
     )
   }
@@ -49,10 +51,10 @@ export default function DoctorDashboardPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <div className="flex items-center gap-2 mb-4">
           <Building2 className="w-5 h-5 text-indigo-600" />
-          <h3 className="font-bold text-slate-900">আপনার হাসপাতাল</h3>
+          <h3 className="font-bold text-slate-900">{t('doctorDashboard.yourHospitals')}</h3>
         </div>
         {me.hospitals.length === 0 ? (
-          <p className="text-sm text-slate-500">এখনো কোনো হাসপাতালে যুক্ত নন। মালিক আপনাকে যুক্ত করলে এখানে দেখা যাবে।</p>
+          <p className="text-sm text-slate-500">{t('doctorDashboard.notAttachedYet')}</p>
         ) : (
           <ul className="space-y-2">
             {me.hospitals.map(h => (
@@ -66,7 +68,7 @@ export default function DoctorDashboardPage() {
                     ? 'bg-green-50 text-green-700 ring-1 ring-green-200'
                     : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
                 }`}>
-                  {h.status === 'Active' ? 'সক্রিয়' : 'নিষ্ক্রিয়'}
+                  {h.status === 'Active' ? t('status.active') : t('status.inactive')}
                 </span>
               </li>
             ))}
@@ -82,8 +84,8 @@ export default function DoctorDashboardPage() {
               <Users className="w-6 h-6 text-indigo-600" />
             </div>
             <div className="flex-1">
-              <p className="font-bold text-slate-900">রোগী খুঁজুন</p>
-              <p className="text-xs text-slate-500 mt-0.5">নাম, ফোন বা Health ID দিয়ে রোগীর তথ্য খুঁজে দেখুন</p>
+              <p className="font-bold text-slate-900">{t('doctorDashboard.searchPatient')}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{t('doctorDashboard.searchPatientDesc')}</p>
             </div>
             <span className="text-indigo-600 font-semibold">→</span>
           </div>

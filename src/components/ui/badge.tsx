@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
 interface BadgeProps {
@@ -36,36 +37,38 @@ export function Badge({ children, variant = 'gray', dot = false, className }: Ba
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  type Cfg = { variant: BadgeProps['variant']; label: string; dot?: boolean }
+  const { t } = useTranslation()
+  type Cfg = { variant: BadgeProps['variant']; key: string; dot?: boolean }
   const config: Record<string, Cfg> = {
-    Active:                { variant: 'green',  label: 'সক্রিয়',           dot: true },
-    Paused:                { variant: 'amber',  label: 'বিরতি',             dot: true },
-    Inactive:              { variant: 'gray',   label: 'নিষ্ক্রিয়',         dot: true },
-    'On-leave':            { variant: 'amber',  label: 'ছুটিতে',            dot: true },
-    Pending:               { variant: 'amber',  label: 'অপেক্ষমান',          dot: true },
-    Approved:              { variant: 'green',  label: 'অনুমোদিত',           dot: true },
-    Rejected:              { variant: 'red',    label: 'প্রত্যাখ্যাত',       dot: true },
-    Confirmed:             { variant: 'blue',   label: 'নিশ্চিত',            dot: true },
-    Completed:             { variant: 'green',  label: 'সম্পন্ন',            dot: true },
-    Cancelled:             { variant: 'red',    label: 'বাতিল',             dot: true },
-    Assigned:              { variant: 'teal',   label: 'নিযুক্ত',            dot: true },
-    Available:             { variant: 'green',  label: 'উপলব্ধ',             dot: true },
-    Occupied:              { variant: 'rose',   label: 'দখলকৃত',            dot: true },
-    Free:                  { variant: 'sky',    label: 'ফ্রি'                         },
-    Premium:               { variant: 'purple', label: 'প্রিমিয়াম'                   },
-    Normal:                { variant: 'green',  label: 'স্বাভাবিক'                    },
-    Abnormal:              { variant: 'red',    label: 'অস্বাভাবিক'                   },
-    'Follow-up required':  { variant: 'amber',  label: 'ফলো-আপ প্রয়োজন'             },
-    admin:                 { variant: 'purple', label: 'অ্যাডমিন'                     },
-    owner:                 { variant: 'blue',   label: 'মালিক'                        },
-    manager:               { variant: 'teal',   label: 'ম্যানেজার'                    },
-    pathologist:           { variant: 'amber',  label: 'প্যাথলজিস্ট'                  },
-    patient:               { variant: 'gray',   label: 'রোগী'                         },
+    Active:                { variant: 'green',  key: 'status.active',    dot: true },
+    Paused:                { variant: 'amber',  key: 'status.paused',    dot: true },
+    Inactive:              { variant: 'gray',   key: 'status.inactive',  dot: true },
+    'On-leave':            { variant: 'amber',  key: 'status.onLeave',   dot: true },
+    Pending:               { variant: 'amber',  key: 'status.pending',   dot: true },
+    Approved:              { variant: 'green',  key: 'status.approved',  dot: true },
+    Rejected:              { variant: 'red',    key: 'status.rejected',  dot: true },
+    Confirmed:             { variant: 'blue',   key: 'status.confirmed', dot: true },
+    Completed:             { variant: 'green',  key: 'status.completed', dot: true },
+    Cancelled:             { variant: 'red',    key: 'status.cancelled', dot: true },
+    Assigned:              { variant: 'teal',   key: 'status.assigned',  dot: true },
+    Available:             { variant: 'green',  key: 'status.available', dot: true },
+    Occupied:              { variant: 'rose',   key: 'status.occupied',  dot: true },
+    Free:                  { variant: 'sky',    key: 'status.free'                 },
+    Premium:               { variant: 'purple', key: 'status.premium'              },
+    Normal:                { variant: 'green',  key: 'status.normal'               },
+    Abnormal:              { variant: 'red',    key: 'status.abnormal'             },
+    'Follow-up required':  { variant: 'amber',  key: 'status.followUp'             },
+    admin:                 { variant: 'purple', key: 'role.admin'                  },
+    owner:                 { variant: 'blue',   key: 'role.owner'                  },
+    manager:               { variant: 'teal',   key: 'role.manager'                },
+    pathologist:           { variant: 'amber',  key: 'role.pathologist'            },
+    doctor:                { variant: 'blue',   key: 'role.doctor'                 },
+    patient:               { variant: 'gray',   key: 'role.patient'                },
   }
-  const cfg = config[status] ?? { variant: 'gray' as const, label: status }
+  const cfg = config[status]
   return (
-    <Badge variant={cfg.variant} dot={cfg.dot}>
-      {cfg.label}
+    <Badge variant={cfg?.variant ?? 'gray'} dot={cfg?.dot}>
+      {cfg ? t(cfg.key) : status}
     </Badge>
   )
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslation } from 'react-i18next'
 import { AlertTriangle, CheckCircle2, HelpCircle } from 'lucide-react'
 import { Modal } from './modal'
 import { Button } from './button'
@@ -18,27 +19,27 @@ interface ConfirmDialogProps {
   isLoading?: boolean
 }
 
-const toneStyles: Record<Tone, { iconBg: string; iconColor: string; Icon: React.ElementType; buttonVariant: 'danger' | 'primary' | 'secondary'; defaultConfirm: string }> = {
+const toneStyles: Record<Tone, { iconBg: string; iconColor: string; Icon: React.ElementType; buttonVariant: 'danger' | 'primary' | 'secondary'; defaultConfirmKey: string }> = {
   danger: {
     iconBg:        'bg-red-100',
     iconColor:     'text-red-600',
     Icon:          AlertTriangle,
     buttonVariant: 'danger',
-    defaultConfirm: 'মুছুন',
+    defaultConfirmKey: 'common.delete',
   },
   primary: {
     iconBg:        'bg-green-100',
     iconColor:     'text-green-600',
     Icon:          CheckCircle2,
     buttonVariant: 'primary',
-    defaultConfirm: 'হ্যাঁ',
+    defaultConfirmKey: 'common.yes',
   },
   warning: {
     iconBg:        'bg-amber-100',
     iconColor:     'text-amber-600',
     Icon:          HelpCircle,
     buttonVariant: 'secondary',
-    defaultConfirm: 'হ্যাঁ',
+    defaultConfirmKey: 'common.yes',
   },
 }
 
@@ -49,26 +50,27 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel,
-  cancelLabel = 'বাতিল',
+  cancelLabel,
   tone = 'danger',
   isLoading = false,
 }: ConfirmDialogProps) {
-  const t = toneStyles[tone]
-  const { Icon } = t
+  const { t } = useTranslation()
+  const cfg = toneStyles[tone]
+  const { Icon } = cfg
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
       <div className="flex gap-4">
-        <div className={`flex-shrink-0 w-10 h-10 rounded-full ${t.iconBg} flex items-center justify-center`}>
-          <Icon className={`w-5 h-5 ${t.iconColor}`} />
+        <div className={`flex-shrink-0 w-10 h-10 rounded-full ${cfg.iconBg} flex items-center justify-center`}>
+          <Icon className={`w-5 h-5 ${cfg.iconColor}`} />
         </div>
         <div className="flex-1">
           <p className="text-sm text-slate-600 leading-relaxed">{message}</p>
           <div className="flex justify-end gap-3 mt-6">
             <Button variant="ghost" onClick={onClose} disabled={isLoading}>
-              {cancelLabel}
+              {cancelLabel ?? t('common.cancel')}
             </Button>
-            <Button variant={t.buttonVariant} onClick={onConfirm} loading={isLoading}>
-              {confirmLabel ?? t.defaultConfirm}
+            <Button variant={cfg.buttonVariant} onClick={onConfirm} loading={isLoading}>
+              {confirmLabel ?? t(cfg.defaultConfirmKey)}
             </Button>
           </div>
         </div>

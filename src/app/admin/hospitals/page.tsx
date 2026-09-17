@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -18,48 +19,10 @@ import { formatDate } from '@/lib/utils'
 import { Plus, Pencil, Trash2, Search, Building2, PauseCircle, PlayCircle, AlertTriangle } from 'lucide-react'
 import type { Hospital } from '@/types'
 
-const hospitalSchema = z.object({
-  name_bn:        z.string().min(2, 'বাংলা নাম দিন'),
-  name_en:        z.string().min(2, 'ইংরেজি নাম দিন'),
-  type:           z.enum(['General', 'Specialized', 'Clinic', 'Diagnostic', 'Hospital']),
-  address:        z.string().min(5, 'ঠিকানা দিন'),
-  phone:          z.string().min(8, 'ফোন নম্বর দিন'),
-  email:          z.string().email('সঠিক ইমেইল দিন'),
-  beds:           z.coerce.number().min(0, 'বেড সংখ্যা দিন'),
-  established:    z.string().min(1, 'প্রতিষ্ঠার তারিখ দিন'),
-  owner_name:        z.string().optional(),
-  owner_phone:       z.string().optional(),
-  owner_email:       z.string().optional(),
-  owner_password:    z.string().optional(),
-  owner_age:         z.union([z.coerce.number().int().min(0).max(150), z.literal(''), z.undefined()]).optional(),
-  owner_gender:      z.enum(['Male', 'Female', 'Other']).optional(),
-  owner_blood_group: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional(),
-  owner_address:     z.string().optional(),
-})
-
-type HospitalForm = z.output<typeof hospitalSchema>
-
-const OWNER_GENDER_OPTIONS = [
-  { value: 'Male',   label: 'পুরুষ'    },
-  { value: 'Female', label: 'মহিলা'    },
-  { value: 'Other',  label: 'অন্যান্য' },
-]
-const OWNER_BLOOD_GROUP_OPTIONS = [
-  { value: '', label: 'অজানা' },
-  ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
-]
-
 const PAGE_SIZE = 10
 
-const typeLabels: Record<Hospital['type'], string> = {
-  General:     'সাধারণ',
-  Specialized: 'বিশেষায়িত',
-  Clinic:      'ক্লিনিক',
-  Diagnostic:  'ডায়াগনস্টিক',
-  Hospital:    'হাসপাতাল',
-}
-
 export default function HospitalsPage() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [modalOpen,    setModalOpen]    = useState(false)
   const [editHospital, setEditHospital] = useState<Hospital | null>(null)
@@ -68,6 +31,45 @@ export default function HospitalsPage() {
   const [search,       setSearch]       = useState('')
   const [page,         setPage]         = useState(1)
   const [errorMsg,     setErrorMsg]     = useState('')
+
+  const hospitalSchema = useMemo(() => z.object({
+    name_bn:        z.string().min(2, t('hospitalPage.nameBnRequired')),
+    name_en:        z.string().min(2, t('hospitalPage.nameEnRequired')),
+    type:           z.enum(['General', 'Specialized', 'Clinic', 'Diagnostic', 'Hospital']),
+    address:        z.string().min(5, t('hospitalPage.addressRequired')),
+    phone:          z.string().min(8, t('hospitalPage.phoneRequired')),
+    email:          z.string().email(t('hospitalPage.validEmail')),
+    beds:           z.coerce.number().min(0, t('hospitalPage.bedsRequired')),
+    established:    z.string().min(1, t('hospitalPage.establishedRequired')),
+    owner_name:        z.string().optional(),
+    owner_phone:       z.string().optional(),
+    owner_email:       z.string().optional(),
+    owner_password:    z.string().optional(),
+    owner_age:         z.union([z.coerce.number().int().min(0).max(150), z.literal(''), z.undefined()]).optional(),
+    owner_gender:      z.enum(['Male', 'Female', 'Other']).optional(),
+    owner_blood_group: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional(),
+    owner_address:     z.string().optional(),
+  }), [t])
+
+  type HospitalForm = z.output<typeof hospitalSchema>
+
+  const OWNER_GENDER_OPTIONS = [
+    { value: 'Male',   label: t('patient.male')   },
+    { value: 'Female', label: t('patient.female') },
+    { value: 'Other',  label: t('patient.other')  },
+  ]
+  const OWNER_BLOOD_GROUP_OPTIONS = [
+    { value: '', label: t('settings.unknownBloodGroup') },
+    ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
+  ]
+
+  const typeLabels: Record<Hospital['type'], string> = {
+    General:     t('hospitalPage.typeGeneral'),
+    Specialized: t('hospitalPage.typeSpecialized'),
+    Clinic:      t('hospitalPage.typeClinic'),
+    Diagnostic:  t('hospitalPage.typeDiagnostic'),
+    Hospital:    t('hospitalPage.typeHospital'),
+  }
 
   const { data: hospitals = [], isLoading } = useQuery({
     queryKey: ['hospitals'],
@@ -156,18 +158,18 @@ export default function HospitalsPage() {
 
     // Owner block is required on create
     let blocked = false
-    if (!data.owner_name?.trim())     { setError('owner_name',     { message: 'মালিকের নাম দিন' });   blocked = true }
-    if (!data.owner_phone?.trim())    { setError('owner_phone',    { message: 'মালিকের ফোন দিন' });   blocked = true }
-    if (!data.owner_email?.trim())    { setError('owner_email',    { message: 'মালিকের ইমেইল দিন' }); blocked = true }
+    if (!data.owner_name?.trim())     { setError('owner_name',     { message: t('hospitalPage.ownerNameRequired') });   blocked = true }
+    if (!data.owner_phone?.trim())    { setError('owner_phone',    { message: t('hospitalPage.ownerPhoneRequired') });   blocked = true }
+    if (!data.owner_email?.trim())    { setError('owner_email',    { message: t('hospitalPage.ownerEmailRequired') }); blocked = true }
     if (!data.owner_password?.trim() || data.owner_password.length < 6) {
-      setError('owner_password', { message: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষর' })
+      setError('owner_password', { message: t('hospitalPage.ownerPasswordRequired') })
       blocked = true
     }
     if (data.owner_age == null || data.owner_age === '' || Number.isNaN(Number(data.owner_age))) {
-      setError('owner_age', { message: 'বয়স দিন' });   blocked = true
+      setError('owner_age', { message: t('hospitalPage.ownerAgeRequired') });   blocked = true
     }
-    if (!data.owner_gender)      { setError('owner_gender',  { message: 'লিঙ্গ নির্বাচন করুন' }); blocked = true }
-    if (!data.owner_address?.trim()) { setError('owner_address', { message: 'ঠিকানা দিন' });        blocked = true }
+    if (!data.owner_gender)      { setError('owner_gender',  { message: t('hospitalPage.ownerGenderRequired') }); blocked = true }
+    if (!data.owner_address?.trim()) { setError('owner_address', { message: t('hospitalPage.addressRequired') });        blocked = true }
     if (blocked) return
 
     createMutation.mutate(data)
@@ -193,19 +195,19 @@ export default function HospitalsPage() {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">হাসপাতাল ব্যবস্থাপনা</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t('hospitalPage.title')}</h2>
           <div className="flex items-center gap-3 mt-1">
-            <p className="text-sm text-slate-500">মোট {hospitals.length}টি হাসপাতাল</p>
+            <p className="text-sm text-slate-500">{t('hospitalPage.totalCount', { count: hospitals.length })}</p>
             {pausedCount > 0 && (
               <Badge variant="amber" dot>
-                {pausedCount}টি বিরতিতে
+                {t('hospitalPage.pausedCount', { count: pausedCount })}
               </Badge>
             )}
           </div>
         </div>
         <Button onClick={handleOpenAdd}>
           <Plus className="w-4 h-4" />
-          নতুন হাসপাতাল
+          {t('hospitalPage.addHospital')}
         </Button>
       </div>
 
@@ -213,10 +215,7 @@ export default function HospitalsPage() {
       {pausedCount > 0 && (
         <div className="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3.5">
           <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-800">
-            <span className="font-semibold">{pausedCount}টি হাসপাতাল</span> বর্তমানে বিরতিতে আছে।
-            বিরতিকালীন হাসপাতালের মালিক, ম্যানেজার এবং প্যাথলজিস্টরা লগইন করতে পারবেন না।
-          </p>
+          <p className="text-sm text-amber-800">{t('hospitalPage.pausedBannerText', { count: pausedCount })}</p>
         </div>
       )}
 
@@ -233,7 +232,7 @@ export default function HospitalsPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <input
           type="text"
-          placeholder="হাসপাতাল খুঁজুন..."
+          placeholder={t('hospitalPage.searchPlaceholder')}
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1) }}
           className="pl-9 pr-4 py-2.5 w-full border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white"
@@ -243,8 +242,15 @@ export default function HospitalsPage() {
       {/* Desktop table */}
       <div className="hidden md:block">
         <Table>
-          <TableHead columns={['হাসপাতালের নাম', 'ধরন', 'স্ট্যাটাস', 'বেড', 'প্রতিষ্ঠা', 'কার্যক্রম']} />
-          <TableBody isEmpty={paginated.length === 0} emptyMessage="কোনো হাসপাতাল নেই" colSpan={6}>
+          <TableHead columns={[
+            t('hospitalPage.colName'),
+            t('hospitalPage.colType'),
+            t('common.status'),
+            t('hospitalPage.colBeds'),
+            t('hospitalPage.colEstablished'),
+            t('common.actions'),
+          ]} />
+          <TableBody isEmpty={paginated.length === 0} emptyMessage={t('hospitalPage.noHospitals')} colSpan={6}>
             {paginated.map((h) => (
               <TableRow
                 key={h.id}
@@ -282,8 +288,8 @@ export default function HospitalsPage() {
                           ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
                           : 'text-amber-500 hover:text-green-600 hover:bg-green-50'
                       }`}
-                      aria-label={h.status === 'Active' ? 'বিরতি দিন' : 'সক্রিয় করুন'}
-                      title={h.status === 'Active' ? 'বিরতি দিন' : 'সক্রিয় করুন'}
+                      aria-label={h.status === 'Active' ? t('hospitalPage.pause') : t('hospitalPage.activate')}
+                      title={h.status === 'Active' ? t('hospitalPage.pause') : t('hospitalPage.activate')}
                     >
                       {h.status === 'Active'
                         ? <PauseCircle className="w-4 h-4" />
@@ -294,8 +300,8 @@ export default function HospitalsPage() {
                     <button
                       onClick={() => handleOpenEdit(h)}
                       className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      aria-label="সম্পাদনা"
-                      title="সম্পাদনা"
+                      aria-label={t('common.edit')}
+                      title={t('common.edit')}
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
@@ -303,8 +309,8 @@ export default function HospitalsPage() {
                     <button
                       onClick={() => setDeleteId(h.id)}
                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      aria-label="মুছুন"
-                      title="মুছুন"
+                      aria-label={t('common.delete')}
+                      title={t('common.delete')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -320,7 +326,7 @@ export default function HospitalsPage() {
       {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         {paginated.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">কোনো হাসপাতাল নেই</div>
+          <div className="text-center py-12 text-slate-500">{t('hospitalPage.noHospitals')}</div>
         ) : (
           paginated.map((h) => (
             <div
@@ -341,7 +347,7 @@ export default function HospitalsPage() {
                     <p className="text-xs text-slate-500">{h.name_en}</p>
                     <div className="flex items-center gap-2 mt-1.5">
                       <StatusBadge status={h.status} />
-                      <span className="text-xs text-slate-400">{typeLabels[h.type]} · বেড: {h.beds}</span>
+                      <span className="text-xs text-slate-400">{typeLabels[h.type]} · {t('hospitalPage.bedsShort')}: {h.beds}</span>
                     </div>
                   </div>
                 </div>
@@ -373,57 +379,57 @@ export default function HospitalsPage() {
       <Modal
         isOpen={modalOpen}
         onClose={() => { setModalOpen(false); setEditHospital(null); reset() }}
-        title={editHospital ? 'হাসপাতাল সম্পাদনা' : 'নতুন হাসপাতাল যোগ করুন'}
+        title={editHospital ? t('hospitalPage.editTitle') : t('hospitalPage.addTitle')}
         size="lg"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="বাংলা নাম"          error={errors.name_bn?.message}    {...register('name_bn')} />
-            <Input label="ইংরেজি নাম"          error={errors.name_en?.message}    {...register('name_en')} />
+            <Input label={t('hospitalPage.nameBn')} error={errors.name_bn?.message} {...register('name_bn')} />
+            <Input label={t('hospitalPage.nameEn')} error={errors.name_en?.message} {...register('name_en')} />
             <Select
-              label="হাসপাতালের ধরন"
+              label={t('hospitalPage.hospitalType')}
               error={errors.type?.message}
-              placeholder="ধরন নির্বাচন করুন"
+              placeholder={t('hospitalPage.selectType')}
               options={[
-                { value: 'General',     label: 'সাধারণ'       },
-                { value: 'Specialized', label: 'বিশেষায়িত'   },
-                { value: 'Clinic',      label: 'ক্লিনিক'      },
-                { value: 'Diagnostic',  label: 'ডায়াগনস্টিক' },
-                { value: 'Hospital',    label: 'হাসপাতাল'     },
+                { value: 'General',     label: t('hospitalPage.typeGeneral')     },
+                { value: 'Specialized', label: t('hospitalPage.typeSpecialized') },
+                { value: 'Clinic',      label: t('hospitalPage.typeClinic')      },
+                { value: 'Diagnostic',  label: t('hospitalPage.typeDiagnostic')  },
+                { value: 'Hospital',    label: t('hospitalPage.typeHospital')    },
               ]}
               {...register('type')}
             />
-            <Input label="বেড সংখ্যা"          type="number" error={errors.beds?.message}        {...register('beds')} />
-            <Input label="ফোন নম্বর"            error={errors.phone?.message}      {...register('phone')} />
-            <Input label="ইমেইল"               type="email"  error={errors.email?.message}       {...register('email')} />
-            <Input label="প্রতিষ্ঠার তারিখ"    type="date"   error={errors.established?.message} {...register('established')} />
+            <Input label={t('hospitalPage.bedCount')} type="number" error={errors.beds?.message} {...register('beds')} />
+            <Input label={t('common.phone')} error={errors.phone?.message} {...register('phone')} />
+            <Input label={t('common.email')} type="email" error={errors.email?.message} {...register('email')} />
+            <Input label={t('hospitalPage.establishedDate')} type="date" error={errors.established?.message} {...register('established')} />
             <div className="sm:col-span-2">
-              <Input label="ঠিকানা" error={errors.address?.message} {...register('address')} />
+              <Input label={t('common.address')} error={errors.address?.message} {...register('address')} />
             </div>
           </div>
 
           {!editHospital && (
             <div className="border-t border-slate-100 pt-5">
-              <p className="text-sm font-bold text-slate-800 mb-3">প্রাথমিক মালিকের তথ্য</p>
+              <p className="text-sm font-bold text-slate-800 mb-3">{t('hospitalPage.primaryOwnerInfo')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="মালিকের নাম"   error={errors.owner_name?.message}     {...register('owner_name')} />
-                <Input label="মালিকের ফোন"   error={errors.owner_phone?.message}    {...register('owner_phone')} />
-                <Input label="মালিকের ইমেইল" type="email"    error={errors.owner_email?.message}    {...register('owner_email')} />
-                <Input label="পাসওয়ার্ড"     type="password" error={errors.owner_password?.message} {...register('owner_password')} />
-                <Input label="বয়স"        type="number" error={errors.owner_age?.message}        {...register('owner_age')} />
-                <Select label="লিঙ্গ"      error={errors.owner_gender?.message}      placeholder="নির্বাচন করুন" options={OWNER_GENDER_OPTIONS}      {...register('owner_gender')} />
-                <Select label="রক্তের গ্রুপ (ঐচ্ছিক)" error={errors.owner_blood_group?.message} options={OWNER_BLOOD_GROUP_OPTIONS} {...register('owner_blood_group')} />
-                <Input label="ঠিকানা"      error={errors.owner_address?.message}      {...register('owner_address')} />
+                <Input label={t('hospitalPage.ownerName')} error={errors.owner_name?.message} {...register('owner_name')} />
+                <Input label={t('hospitalPage.ownerPhone')} error={errors.owner_phone?.message} {...register('owner_phone')} />
+                <Input label={t('hospitalPage.ownerEmail')} type="email" error={errors.owner_email?.message} {...register('owner_email')} />
+                <Input label={t('auth.password')} type="password" error={errors.owner_password?.message} {...register('owner_password')} />
+                <Input label={t('hospitalPage.ownerAge')} type="number" error={errors.owner_age?.message} {...register('owner_age')} />
+                <Select label={t('hospitalPage.ownerGender')} error={errors.owner_gender?.message} placeholder={t('additionalRole.selectPlaceholder')} options={OWNER_GENDER_OPTIONS} {...register('owner_gender')} />
+                <Select label={t('hospitalPage.ownerBloodGroupOptional')} error={errors.owner_blood_group?.message} options={OWNER_BLOOD_GROUP_OPTIONS} {...register('owner_blood_group')} />
+                <Input label={t('hospitalPage.ownerAddress')} error={errors.owner_address?.message} {...register('owner_address')} />
               </div>
             </div>
           )}
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={() => { setModalOpen(false); setEditHospital(null); reset() }}>
-              বাতিল
+              {t('common.cancel')}
             </Button>
             <Button type="submit" loading={createMutation.isPending || updateMutation.isPending}>
-              {editHospital ? 'আপডেট করুন' : 'যোগ করুন'}
+              {editHospital ? t('staffPage.update') : t('common.add')}
             </Button>
           </div>
         </form>
@@ -434,11 +440,11 @@ export default function HospitalsPage() {
         isOpen={!!pauseTarget}
         onClose={() => setPauseTarget(null)}
         onConfirm={() => pauseTarget && toggleStatusMutation.mutate(pauseTarget.id)}
-        title="হাসপাতাল বিরতি দিন"
-        message={`"${pauseTarget?.name_bn}" হাসপাতালটি বিরতিতে দিলে এই হাসপাতালের সকল স্টাফ (মালিক, ম্যানেজার, প্যাথলজিস্ট) তাৎক্ষণিকভাবে লগইন করতে পারবেন না। আপনি কি নিশ্চিত?`}
+        title={t('hospitalPage.pauseTitle')}
+        message={t('hospitalPage.pauseConfirm', { name: pauseTarget?.name_bn ?? '' })}
         tone="warning"
-        confirmLabel="হ্যাঁ, বিরতি দিন"
-        cancelLabel="না"
+        confirmLabel={t('hospitalPage.yesPause')}
+        cancelLabel={t('hospitalPage.no')}
         isLoading={toggleStatusMutation.isPending}
       />
 
@@ -447,8 +453,8 @@ export default function HospitalsPage() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        title="হাসপাতাল মুছুন"
-        message="আপনি কি এই হাসপাতালটি মুছে ফেলতে চান? এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।"
+        title={t('hospitalPage.deleteTitle')}
+        message={t('hospitalPage.deleteConfirm')}
         isLoading={deleteMutation.isPending}
       />
     </div>

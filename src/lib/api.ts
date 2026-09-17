@@ -379,7 +379,7 @@ export const api = {
     getDashboard: (_patientId: string) =>
       get<Patient>('/api/patient/me/'),
 
-    updateMyProfile: (data: Partial<Pick<Patient, 'name' | 'age' | 'gender' | 'blood_group' | 'address' | 'conditions' | 'nid'>> & { email?: string }) =>
+    updateMyProfile: (data: Partial<Pick<Patient, 'name' | 'age' | 'date_of_birth' | 'gender' | 'blood_group' | 'address' | 'conditions' | 'nid'>> & { email?: string }) =>
       put<Patient>('/api/patient/me/', data),
 
     setPrivacy: (is_private: boolean) =>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,38 +13,15 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/ui/badge'
 import { Table, TableHead, TableBody, TableRow, TableCell } from '@/components/ui/table'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
 import { formatCurrency } from '@/lib/utils'
 import { Plus, Pencil, Trash2, BedDouble } from 'lucide-react'
 import type { Bed } from '@/types'
 
-const bedSchema = z.object({
-  number: z.string().min(1, 'বেড নম্বর দিন'),
-  ward: z.string().min(2, 'ওয়ার্ড দিন'),
-  type: z.enum(['General', 'ICU', 'Private', 'Cabin']),
-  price_per_day: z.coerce.number().min(1, 'মূল্য দিন'),
-  status: z.enum(['Available', 'Occupied']),
-})
-
-type BedForm = z.output<typeof bedSchema>
-
-const typeLabelMap: Record<string, string> = {
-  General: 'সাধারণ',
-  ICU: 'আইসিইউ',
-  Private: 'প্রাইভেট',
-  Cabin: 'কেবিন',
-}
-
-const typeVariantMap: Record<string, 'blue' | 'red' | 'purple' | 'teal'> = {
-  General: 'blue',
-  ICU: 'red',
-  Private: 'purple',
-  Cabin: 'teal',
-}
-
 export default function BedsPage() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
   const queryClient = useQueryClient()
@@ -51,6 +29,23 @@ export default function BedsPage() {
   const [editBed, setEditBed] = useState<Bed | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
+
+  const bedSchema = useMemo(() => z.object({
+    number: z.string().min(1, t('bedPage.bedNumberRequired')),
+    ward: z.string().min(2, t('staffPage.wardRequired')),
+    type: z.enum(['General', 'ICU', 'Private', 'Cabin']),
+    price_per_day: z.coerce.number().min(1, t('bedPage.priceRequired')),
+    status: z.enum(['Available', 'Occupied']),
+  }), [t])
+
+  type BedForm = z.output<typeof bedSchema>
+
+  const typeLabelMap: Record<string, string> = {
+    General: t('bedPage.typeGeneral'),
+    ICU: t('bedPage.typeIcu'),
+    Private: t('bedPage.typePrivate'),
+    Cabin: t('bedPage.typeCabin'),
+  }
 
   const { data: beds = [], isLoading } = useQuery({
     queryKey: ['beds', hospitalId],
@@ -129,14 +124,14 @@ export default function BedsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">বেড ব্যবস্থাপনা</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t('bedPage.title')}</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            মোট {beds.length}টি বেড · উপলব্ধ {available}টি, দখলকৃত {occupied}টি
+            {t('bedPage.summary', { total: beds.length, available, occupied })}
           </p>
         </div>
         <Button onClick={handleOpenAdd}>
           <Plus className="w-4 h-4" />
-          বেড যোগ করুন
+          {t('bedPage.addBed')}
         </Button>
       </div>
 
@@ -149,8 +144,8 @@ export default function BedsPage() {
 
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <Table>
-          <TableHead columns={['বেড নম্বর', 'ওয়ার্ড', 'ধরন', 'মূল্য/দিন', 'স্ট্যাটাস', 'কার্যক্রম']} />
-          <TableBody isEmpty={beds.length === 0} emptyMessage="কোনো বেড নেই" colSpan={6}>
+          <TableHead columns={[t('bedPage.bedNumber'), t('admission.ward'), t('bedPage.bedType'), t('bedPage.pricePerDay'), t('common.status'), t('common.actions')]} />
+          <TableBody isEmpty={beds.length === 0} emptyMessage={t('bedPage.noBeds')} colSpan={6}>
             {beds.map((b) => (
               <TableRow key={b.id}>
                 <TableCell>
@@ -160,21 +155,17 @@ export default function BedsPage() {
                   </div>
                 </TableCell>
                 <TableCell>{b.ward}</TableCell>
-                <TableCell>
-                  <Badge variant={typeVariantMap[b.type]}>{typeLabelMap[b.type]}</Badge>
-                </TableCell>
+                <TableCell>{typeLabelMap[b.type]}</TableCell>
                 <TableCell>{formatCurrency(b.price_per_day)}</TableCell>
                 <TableCell>
-                  <Badge variant={b.status === 'Available' ? 'green' : 'red'}>
-                    {b.status === 'Available' ? 'উপলব্ধ' : 'দখলকৃত'}
-                  </Badge>
+                  <StatusBadge status={b.status} />
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleOpenEdit(b)}
                       className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                      aria-label="সম্পাদনা"
+                      aria-label={t('common.edit')}
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
@@ -182,7 +173,7 @@ export default function BedsPage() {
                       <button
                         onClick={() => setDeleteId(b.id)}
                         className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        aria-label="মুছুন"
+                        aria-label={t('common.delete')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -202,13 +193,11 @@ export default function BedsPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <BedDouble className="w-4 h-4 text-slate-500" />
-                  <p className="font-semibold text-slate-900">বেড {b.number}</p>
+                  <p className="font-semibold text-slate-900">{t('bedPage.bedPrefix')} {b.number}</p>
                 </div>
-                <p className="text-sm text-slate-500 mt-1">{b.ward} | {typeLabelMap[b.type]} | {formatCurrency(b.price_per_day)}/দিন</p>
+                <p className="text-sm text-slate-500 mt-1">{b.ward} | {typeLabelMap[b.type]} | {formatCurrency(b.price_per_day)}{t('bedPage.perDay')}</p>
                 <div className="mt-2 flex gap-2">
-                  <Badge variant={b.status === 'Available' ? 'green' : 'red'}>
-                    {b.status === 'Available' ? 'উপলব্ধ' : 'দখলকৃত'}
-                  </Badge>
+                  <StatusBadge status={b.status} />
                 </div>
               </div>
               <div className="flex gap-1">
@@ -229,39 +218,39 @@ export default function BedsPage() {
       <Modal
         isOpen={modalOpen}
         onClose={() => { setModalOpen(false); setEditBed(null); reset() }}
-        title={editBed ? 'বেড সম্পাদনা' : 'বেড যোগ করুন'}
+        title={editBed ? t('bedPage.editTitle') : t('bedPage.addBed')}
         size="sm"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Input label="বেড নম্বর" error={errors.number?.message} {...register('number')} />
-          <Input label="ওয়ার্ড" error={errors.ward?.message} {...register('ward')} />
+          <Input label={t('bedPage.bedNumber')} error={errors.number?.message} {...register('number')} />
+          <Input label={t('admission.ward')} error={errors.ward?.message} {...register('ward')} />
           <Select
-            label="বেডের ধরন"
+            label={t('bedPage.bedType')}
             error={errors.type?.message}
             options={[
-              { value: 'General', label: 'সাধারণ' },
-              { value: 'ICU', label: 'আইসিইউ' },
-              { value: 'Private', label: 'প্রাইভেট' },
-              { value: 'Cabin', label: 'কেবিন' },
+              { value: 'General', label: t('bedPage.typeGeneral') },
+              { value: 'ICU', label: t('bedPage.typeIcu') },
+              { value: 'Private', label: t('bedPage.typePrivate') },
+              { value: 'Cabin', label: t('bedPage.typeCabin') },
             ]}
             {...register('type')}
           />
-          <Input label="প্রতিদিনের মূল্য (টাকা)" type="number" error={errors.price_per_day?.message} {...register('price_per_day')} />
+          <Input label={t('bedPage.pricePerDay')} type="number" error={errors.price_per_day?.message} {...register('price_per_day')} />
           <Select
-            label="স্ট্যাটাস"
+            label={t('common.status')}
             error={errors.status?.message}
             options={[
-              { value: 'Available', label: 'উপলব্ধ' },
-              { value: 'Occupied', label: 'দখলকৃত' },
+              { value: 'Available', label: t('status.available') },
+              { value: 'Occupied', label: t('status.occupied') },
             ]}
             {...register('status')}
           />
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => { setModalOpen(false); setEditBed(null); reset() }}>
-              বাতিল
+              {t('common.cancel')}
             </Button>
             <Button type="submit" loading={addMutation.isPending || updateMutation.isPending}>
-              {editBed ? 'আপডেট করুন' : 'যোগ করুন'}
+              {editBed ? t('staffPage.update') : t('common.add')}
             </Button>
           </div>
         </form>
@@ -271,8 +260,8 @@ export default function BedsPage() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        title="বেড মুছুন"
-        message="আপনি কি এই বেডটি মুছে ফেলতে চান?"
+        title={t('bedPage.deleteTitle')}
+        message={t('bedPage.deleteConfirm')}
         isLoading={deleteMutation.isPending}
       />
     </div>

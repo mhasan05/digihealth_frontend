@@ -168,13 +168,14 @@ export type RoleApplicationType = 'doctor' | 'nurse' | 'medical_assistant' | 'mi
 export type RoleApplicationStatus = 'Pending' | 'Approved' | 'Rejected'
 export type OrgType = 'Diagnostic' | 'Clinic' | 'Hospital'
 
-export const ROLE_APPLICATION_TYPES: { value: RoleApplicationType; label: string }[] = [
-  { value: 'doctor',              label: 'ডাক্তার' },
-  { value: 'nurse',                label: 'নার্স' },
-  { value: 'medical_assistant',    label: 'মেডিকেল অ্যাসিস্ট্যান্ট' },
-  { value: 'midwife',              label: 'মিডওয়াইফ' },
-  { value: 'pathologist',          label: 'প্যাথলজিস্ট' },
-  { value: 'organization_owner',   label: 'প্রতিষ্ঠান মালিক' },
+/** `labelKey` resolves via t() at each call site — see roleApplicationType.* in en.json/bn.json. */
+export const ROLE_APPLICATION_TYPES: { value: RoleApplicationType; labelKey: string }[] = [
+  { value: 'doctor',              labelKey: 'roleApplicationType.doctor' },
+  { value: 'nurse',                labelKey: 'roleApplicationType.nurse' },
+  { value: 'medical_assistant',    labelKey: 'roleApplicationType.medicalAssistant' },
+  { value: 'midwife',              labelKey: 'roleApplicationType.midwife' },
+  { value: 'pathologist',          labelKey: 'roleApplicationType.pathologist' },
+  { value: 'organization_owner',   labelKey: 'roleApplicationType.organizationOwner' },
 ]
 
 /** A patient's self-service application for an additional role. */
@@ -235,6 +236,8 @@ export interface Patient {
   name: string
   phone?: string
   age: number
+  /** Source of truth for `age` on the patient's own profile edit — see settings-modal.tsx. */
+  date_of_birth?: string | null
   gender: 'Male' | 'Female' | 'Other'
   blood_group: string
   address: string
@@ -252,11 +255,12 @@ export interface Patient {
 
 export type PatientCondition = 'asthma' | 'hypertension' | 'diabetes' | 'ckd'
 
-export const PATIENT_CONDITIONS: { value: PatientCondition; label: string; short: string }[] = [
-  { value: 'asthma',       label: 'অ্যাজমা',                short: 'অ্যাজমা'   },
-  { value: 'hypertension', label: 'উচ্চ রক্তচাপ',           short: 'উচ্চ চাপ'  },
-  { value: 'diabetes',     label: 'ডায়াবেটিস',              short: 'ডায়াবেটিস' },
-  { value: 'ckd',          label: 'কিডনি রোগ (CKD)',         short: 'কিডনি'    },
+/** `labelKey`/`shortKey` resolve via t() at each call site — see patientCondition.* in en.json/bn.json. */
+export const PATIENT_CONDITIONS: { value: PatientCondition; labelKey: string; shortKey: string }[] = [
+  { value: 'asthma',       labelKey: 'patientCondition.asthma',       shortKey: 'patientCondition.asthmaShort' },
+  { value: 'hypertension', labelKey: 'patientCondition.hypertension', shortKey: 'patientCondition.hypertensionShort' },
+  { value: 'diabetes',     labelKey: 'patientCondition.diabetes',     shortKey: 'patientCondition.diabetesShort' },
+  { value: 'ckd',          labelKey: 'patientCondition.ckd',          shortKey: 'patientCondition.ckdShort' },
 ]
 
 export interface HealthMetric {

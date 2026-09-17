@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Search, AlertTriangle, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -30,8 +31,9 @@ interface StaffImportModalProps<T extends Applicant> {
  */
 export function StaffImportModal<T extends Applicant>({
   isOpen, onClose, roleLabel, queryKeyPrefix, search, doImport, onImported,
-  extraFieldLabel = 'ওয়ার্ড (ঐচ্ছিক)',
+  extraFieldLabel,
 }: StaffImportModalProps<T>) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [picked, setPicked] = useState<T | null>(null)
   const [extraValue, setExtraValue] = useState('')
@@ -61,7 +63,7 @@ export function StaffImportModal<T extends Applicant>({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={picked ? 'হাসপাতালে যুক্ত করুন' : `আবেদনকারী ${roleLabel} খুঁজুন`}
+      title={picked ? t('staffImport.attachTitle') : t('staffImport.searchTitle', { role: roleLabel })}
       size="sm"
     >
       {!picked ? (
@@ -73,7 +75,7 @@ export function StaffImportModal<T extends Applicant>({
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="নাম বা ফোন নম্বর দিয়ে খুঁজুন"
+              placeholder={t('staffImport.searchPlaceholder')}
               className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all"
             />
           </div>
@@ -82,14 +84,14 @@ export function StaffImportModal<T extends Applicant>({
             {query.trim().length < 1 ? (
               <div className="flex flex-col items-center justify-center h-40 text-center px-6 text-sm text-slate-400">
                 <Search className="w-8 h-8 mb-2 text-slate-300" />
-                খুঁজতে শুরু করুন
+                {t('staffImport.startSearching')}
               </div>
             ) : isFetching ? (
-              <div className="flex items-center justify-center h-40 text-sm text-slate-400">খুঁজছি...</div>
+              <div className="flex items-center justify-center h-40 text-sm text-slate-400">{t('staffImport.searching')}</div>
             ) : results.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 text-center px-6 text-sm text-slate-500">
                 <AlertTriangle className="w-6 h-6 mb-2 text-amber-400" />
-                অনুমোদিত ও অযুক্ত কাউকে পাওয়া যায়নি।
+                {t('staffImport.noneFound')}
               </div>
             ) : (
               <ul className="divide-y divide-slate-100">
@@ -107,7 +109,7 @@ export function StaffImportModal<T extends Applicant>({
                         <p className="text-sm font-medium text-slate-900 truncate">{item.name}</p>
                         <p className="text-xs text-slate-500 truncate">{item.phone}</p>
                       </div>
-                      <span className="text-xs text-green-700 font-semibold whitespace-nowrap">যুক্ত করুন →</span>
+                      <span className="text-xs text-green-700 font-semibold whitespace-nowrap">{t('staffImport.attachAction')} →</span>
                     </button>
                   </li>
                 ))}
@@ -116,7 +118,7 @@ export function StaffImportModal<T extends Applicant>({
           </div>
 
           <div className="flex justify-end">
-            <Button type="button" variant="outline" onClick={onClose}>বাতিল</Button>
+            <Button type="button" variant="outline" onClick={onClose}>{t('common.cancel')}</Button>
           </div>
         </div>
       ) : (
@@ -130,12 +132,12 @@ export function StaffImportModal<T extends Applicant>({
               <p className="text-xs text-slate-500">{picked.phone}</p>
             </div>
           </div>
-          <Input label={extraFieldLabel} value={extraValue} onChange={e => setExtraValue(e.target.value)} />
+          <Input label={extraFieldLabel ?? t('staffImport.defaultExtraFieldLabel')} value={extraValue} onChange={e => setExtraValue(e.target.value)} />
           <div className="flex justify-between gap-3 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setPicked(null)}>← অন্য কেউ বাছুন</Button>
+            <Button type="button" variant="ghost" onClick={() => setPicked(null)}>← {t('staffImport.pickOtherPerson')}</Button>
             <div className="flex gap-3">
-              <Button type="button" variant="outline" onClick={onClose}>বাতিল</Button>
-              <Button type="button" onClick={() => importMutation.mutate()} loading={importMutation.isPending}>যুক্ত করুন</Button>
+              <Button type="button" variant="outline" onClick={onClose}>{t('common.cancel')}</Button>
+              <Button type="button" onClick={() => importMutation.mutate()} loading={importMutation.isPending}>{t('staffImport.attachAction')}</Button>
             </div>
           </div>
         </div>

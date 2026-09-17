@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -17,22 +18,23 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, Pencil, Trash2, Search, Stethoscope, AlertTriangle, PauseCircle, PlayCircle } from 'lucide-react'
 import type { RegistryDoctor } from '@/types'
 
-const doctorSchema = z.object({
-  name: z.string().min(2, 'নাম দিন'),
-  phone: z.string().min(11, 'ফোন নম্বর দিন'),
-  bmdc_registration_no: z.string().optional(),
-  specialization: z.string().min(2, 'বিশেষজ্ঞতা দিন'),
-})
-
-type DoctorForm = z.infer<typeof doctorSchema>
-
 export default function AdminDoctorsPage() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editDoctor, setEditDoctor] = useState<RegistryDoctor | null>(null)
   const [deleteDoctor, setDeleteDoctor] = useState<RegistryDoctor | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  const doctorSchema = useMemo(() => z.object({
+    name: z.string().min(2, t('adminDoctorPage.nameRequired')),
+    phone: z.string().min(11, t('adminDoctorPage.phoneRequired')),
+    bmdc_registration_no: z.string().optional(),
+    specialization: z.string().min(2, t('adminDoctorPage.specializationRequired')),
+  }), [t])
+
+  type DoctorForm = z.infer<typeof doctorSchema>
 
   const { data: doctors = [], isLoading } = useQuery({
     queryKey: ['admin-doctors'],
@@ -137,12 +139,12 @@ export default function AdminDoctorsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">ডাক্তার রেজিস্ট্রি</h2>
-          <p className="text-sm text-slate-500 mt-0.5">সিস্টেম-ব্যাপী ডাক্তারের তালিকা · মোট {doctors.length}জন</p>
+          <h2 className="text-xl font-bold text-slate-900">{t('adminDoctorPage.title')}</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{t('adminDoctorPage.subtitle', { count: doctors.length })}</p>
         </div>
         <Button onClick={openAdd}>
           <Plus className="w-4 h-4" />
-          নতুন ডাক্তার যোগ করুন
+          {t('adminDoctorPage.addDoctor')}
         </Button>
       </div>
 
@@ -152,15 +154,24 @@ export default function AdminDoctorsPage() {
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="নাম, ফোন, BMDC বা বিশেষজ্ঞতা দিয়ে খুঁজুন..."
+          placeholder={t('adminDoctorPage.searchPlaceholder')}
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all"
         />
       </div>
 
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <Table>
-          <TableHead columns={['নাম', 'বিশেষজ্ঞতা', 'ফোন', 'BMDC রেজি. নং', 'স্ট্যাটাস', 'যুক্ত হাসপাতাল', 'যোগ করা হয়েছে', 'কার্যক্রম']} />
-          <TableBody isEmpty={filtered.length === 0} emptyMessage="কোনো ডাক্তার নেই" colSpan={8}>
+          <TableHead columns={[
+            t('adminDoctorPage.colName'),
+            t('adminDoctorPage.colSpecialization'),
+            t('common.phone'),
+            t('adminDoctorPage.colBmdc'),
+            t('common.status'),
+            t('adminDoctorPage.colAttachedHospitals'),
+            t('adminDoctorPage.colAddedOn'),
+            t('common.actions'),
+          ]} />
+          <TableBody isEmpty={filtered.length === 0} emptyMessage={t('adminDoctorPage.noDoctors')} colSpan={8}>
             {filtered.map(d => {
               const unavailable = d.availability_status === 'Unavailable'
               const next = unavailable ? 'Available' : 'Unavailable'
@@ -177,17 +188,17 @@ export default function AdminDoctorsPage() {
                   <TableCell>
                     {d.specialization
                       ? <span className="text-sm text-slate-700">{d.specialization}</span>
-                      : <span className="text-xs text-slate-400">নেই</span>}
+                      : <span className="text-xs text-slate-400">{t('adminDoctorPage.noneShort')}</span>}
                   </TableCell>
                   <TableCell>{d.phone}</TableCell>
                   <TableCell>
                     {d.bmdc_registration_no
                       ? <span className="font-mono text-xs text-slate-700">{d.bmdc_registration_no}</span>
-                      : <span className="text-xs text-slate-400">নেই</span>}
+                      : <span className="text-xs text-slate-400">{t('adminDoctorPage.noneShort')}</span>}
                   </TableCell>
                   <TableCell>
                     <Badge variant={unavailable ? 'red' : 'green'}>
-                      {unavailable ? 'অপ্রাপ্য' : 'প্রাপ্য'}
+                      {unavailable ? t('adminDoctorPage.unavailable') : t('adminDoctorPage.available')}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -206,19 +217,19 @@ export default function AdminDoctorsPage() {
                             ? 'text-slate-400 hover:text-green-600 hover:bg-green-50'
                             : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
                         }`}
-                        aria-label={unavailable ? 'প্রাপ্য হিসেবে চিহ্নিত করুন' : 'অপ্রাপ্য হিসেবে চিহ্নিত করুন'}
-                        title={unavailable ? 'প্রাপ্য করুন' : 'অপ্রাপ্য করুন'}
+                        aria-label={unavailable ? t('adminDoctorPage.markAvailable') : t('adminDoctorPage.markUnavailable')}
+                        title={unavailable ? t('adminDoctorPage.markAvailable') : t('adminDoctorPage.markUnavailable')}
                       >
                         {unavailable ? <PlayCircle className="w-4 h-4" /> : <PauseCircle className="w-4 h-4" />}
                       </button>
                       <button onClick={() => openEdit(d)}
                         className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                        aria-label="সম্পাদনা">
+                        aria-label={t('common.edit')}>
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button onClick={() => setDeleteDoctor(d)}
                         className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        aria-label="মুছুন">
+                        aria-label={t('common.delete')}>
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -246,10 +257,10 @@ export default function AdminDoctorsPage() {
                   {d.bmdc_registration_no && (
                     <p className="text-xs font-mono text-slate-500 mt-1">BMDC: {d.bmdc_registration_no}</p>
                   )}
-                  <p className="text-xs text-slate-400 mt-1">যুক্ত: {d.attached_hospital_count ?? 0} হাসপাতাল</p>
+                  <p className="text-xs text-slate-400 mt-1">{t('adminDoctorPage.attachedShort')}: {d.attached_hospital_count ?? 0} {t('adminDoctorPage.hospitalsShort')}</p>
                   <div className="mt-2">
                     <Badge variant={unavailable ? 'red' : 'green'}>
-                      {unavailable ? 'অপ্রাপ্য' : 'প্রাপ্য'}
+                      {unavailable ? t('adminDoctorPage.unavailable') : t('adminDoctorPage.available')}
                     </Badge>
                   </div>
                 </div>
@@ -258,7 +269,7 @@ export default function AdminDoctorsPage() {
                     onClick={() => availabilityMutation.mutate({ id: d.id, next })}
                     disabled={availabilityMutation.isPending}
                     className={`p-1.5 ${unavailable ? 'text-slate-400 hover:text-green-600' : 'text-slate-400 hover:text-amber-600'}`}
-                    aria-label={unavailable ? 'প্রাপ্য করুন' : 'অপ্রাপ্য করুন'}
+                    aria-label={unavailable ? t('adminDoctorPage.markAvailable') : t('adminDoctorPage.markUnavailable')}
                   >
                     {unavailable ? <PlayCircle className="w-4 h-4" /> : <PauseCircle className="w-4 h-4" />}
                   </button>
@@ -278,21 +289,21 @@ export default function AdminDoctorsPage() {
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editDoctor ? 'ডাক্তার সম্পাদনা' : 'নতুন ডাক্তার যোগ করুন'}
+        title={editDoctor ? t('adminDoctorPage.editTitle') : t('adminDoctorPage.addTitle')}
         size="sm"
       >
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <Input label="পূর্ণ নাম" error={form.formState.errors.name?.message} {...form.register('name')} />
-          <Input label="ফোন নম্বর" error={form.formState.errors.phone?.message} {...form.register('phone')} />
+          <Input label={t('adminDoctorPage.fullName')} error={form.formState.errors.name?.message} {...form.register('name')} />
+          <Input label={t('common.phone')} error={form.formState.errors.phone?.message} {...form.register('phone')} />
           <Input
-            label="BMDC রেজিস্ট্রেশন নম্বর (ঐচ্ছিক)"
-            placeholder="যেমন: A-12345"
+            label={t('adminDoctorPage.bmdcOptional')}
+            placeholder={t('additionalRole.registrationNumberPlaceholder')}
             error={form.formState.errors.bmdc_registration_no?.message}
             {...form.register('bmdc_registration_no')}
           />
           <Input
-            label="বিশেষজ্ঞতা"
-            placeholder="যেমন: Cardiology, Pediatrics"
+            label={t('adminDoctorPage.colSpecialization')}
+            placeholder={t('adminDoctorPage.specializationPlaceholder')}
             error={form.formState.errors.specialization?.message}
             {...form.register('specialization')}
           />
@@ -303,9 +314,9 @@ export default function AdminDoctorsPage() {
             </div>
           )}
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={closeModal}>বাতিল</Button>
+            <Button type="button" variant="outline" onClick={closeModal}>{t('common.cancel')}</Button>
             <Button type="submit" loading={createMutation.isPending || updateMutation.isPending}>
-              {editDoctor ? 'আপডেট করুন' : 'যোগ করুন'}
+              {editDoctor ? t('staffPage.update') : t('common.add')}
             </Button>
           </div>
         </form>
@@ -315,11 +326,11 @@ export default function AdminDoctorsPage() {
         isOpen={!!deleteDoctor}
         onClose={() => setDeleteDoctor(null)}
         onConfirm={() => deleteDoctor && deleteMutation.mutate(deleteDoctor.id)}
-        title="ডাক্তার মুছুন"
+        title={t('adminDoctorPage.deleteTitle')}
         message={
           deleteDoctor && (deleteDoctor.attached_hospital_count ?? 0) > 0
-            ? `এই ডাক্তার ${deleteDoctor.attached_hospital_count}টি হাসপাতালে যুক্ত আছে। মুছলে সব যুক্ততাও বাতিল হবে।`
-            : 'আপনি কি এই ডাক্তারকে রেজিস্ট্রি থেকে মুছে ফেলতে চান?'
+            ? t('adminDoctorPage.deleteAttachedWarning', { count: deleteDoctor.attached_hospital_count })
+            : t('adminDoctorPage.deleteConfirm')
         }
         isLoading={deleteMutation.isPending}
       />

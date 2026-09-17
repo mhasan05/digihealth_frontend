@@ -1,6 +1,7 @@
 "use client"
 
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/auth-store'
 import { api } from '@/lib/api'
 import { SkeletonDashboard } from '@/components/ui/skeleton'
@@ -47,6 +48,7 @@ interface StatCardProps {
 }
 
 function StatCard({ icon: Icon, label, value, sub, color, urgent }: StatCardProps) {
+  const { t } = useTranslation()
   return (
     <div className={cn(
       'bg-white rounded-2xl border shadow-sm p-5 card-lift',
@@ -58,7 +60,7 @@ function StatCard({ icon: Icon, label, value, sub, color, urgent }: StatCardProp
         </div>
         {urgent && value > 0 && (
           <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-lg">
-            Action needed
+            {t('managerDashboard.actionNeeded')}
           </span>
         )}
       </div>
@@ -70,6 +72,7 @@ function StatCard({ icon: Icon, label, value, sub, color, urgent }: StatCardProp
 }
 
 export default function ManagerDashboard() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const hospitalId = user?.active_hospital_id ?? 'h1'
 
@@ -84,9 +87,9 @@ export default function ManagerDashboard() {
     return (
       <div className="bg-white rounded-2xl border border-amber-200 p-8 text-center">
         <ClipboardList className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-        <h3 className="text-lg font-bold text-slate-900 mb-1">ম্যানেজার প্রোফাইল পাওয়া যায়নি</h3>
+        <h3 className="text-lg font-bold text-slate-900 mb-1">{t('managerDashboard.profileNotFoundTitle')}</h3>
         <p className="text-sm text-slate-500">
-          {error instanceof Error ? error.message : 'আপনার অ্যাকাউন্টে ম্যানেজার প্রোফাইল নেই। অ্যাডমিনের সাথে যোগাযোগ করুন।'}
+          {error instanceof Error ? error.message : t('managerDashboard.profileNotFoundDefault')}
         </p>
       </div>
     )
@@ -99,35 +102,35 @@ export default function ManagerDashboard() {
           <div className="w-7 h-7 rounded-lg bg-teal-50 flex items-center justify-center">
             <ClipboardList className="w-4 h-4 text-teal-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900">Manager Dashboard</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t('managerDashboard.title')}</h2>
         </div>
-        <p className="text-sm text-slate-500 ml-9">Today&apos;s operational summary</p>
+        <p className="text-sm text-slate-500 ml-9">{t('managerDashboard.subtitle')}</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={CalendarCheck}
-          label="Today's Appointments"
+          label={t('managerDashboard.todaysAppointments')}
           value={data.todays_appointments}
           color={{ bg: 'bg-sky-50', icon: 'text-sky-600', value: 'text-sky-700' }}
         />
         <StatCard
           icon={Clock}
-          label="Pending Confirmations"
+          label={t('managerDashboard.pendingConfirmations')}
           value={data.pending_confirmations}
           urgent
           color={{ bg: 'bg-amber-50', icon: 'text-amber-600', value: 'text-amber-700' }}
         />
         <StatCard
           icon={BedDouble}
-          label="Currently Admitted"
+          label={t('managerDashboard.currentlyAdmitted')}
           value={data.currently_admitted}
           color={{ bg: 'bg-teal-50', icon: 'text-teal-600', value: 'text-teal-700' }}
         />
         <StatCard
           icon={FlaskConical}
-          label="Pending Lab Orders"
+          label={t('managerDashboard.pendingLabOrders')}
           value={data.pending_lab_orders}
           urgent
           color={{ bg: 'bg-rose-50', icon: 'text-rose-600', value: 'text-rose-700' }}
@@ -136,27 +139,27 @@ export default function ManagerDashboard() {
 
       {/* Quick actions */}
       <div>
-        <h3 className="text-sm font-bold text-slate-700 mb-3">Quick Actions</h3>
+        <h3 className="text-sm font-bold text-slate-700 mb-3">{t('managerDashboard.quickActions')}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <QuickLink
             href="/manager/appointments"
             icon={CalendarCheck}
-            label="Manage Appointments"
-            description="View, confirm, or cancel bookings"
+            label={t('managerDashboard.manageAppointments')}
+            description={t('managerDashboard.manageAppointmentsDesc')}
             color={{ bg: 'bg-sky-50', icon: 'text-sky-600', border: 'border-sky-100' }}
           />
           <QuickLink
             href="/manager/admissions"
             icon={BedDouble}
-            label="Patient Admissions"
-            description="Assign beds and nurses"
+            label={t('managerDashboard.patientAdmissions')}
+            description={t('managerDashboard.patientAdmissionsDesc')}
             color={{ bg: 'bg-teal-50', icon: 'text-teal-600', border: 'border-teal-100' }}
           />
           <QuickLink
             href="/manager/lab-orders"
             icon={FlaskConical}
-            label="Lab Orders"
-            description="Assign tests to pathologists"
+            label={t('managerDashboard.labOrders')}
+            description={t('managerDashboard.labOrdersDesc')}
             color={{ bg: 'bg-amber-50', icon: 'text-amber-600', border: 'border-amber-100' }}
           />
         </div>

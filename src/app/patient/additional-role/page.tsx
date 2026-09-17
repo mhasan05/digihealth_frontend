@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -25,13 +26,14 @@ const ROLE_ICONS: Record<RoleApplicationType, React.ElementType> = {
   organization_owner: Building2,
 }
 
-const ORG_TYPE_OPTIONS: { value: OrgType; label: string }[] = [
-  { value: 'Diagnostic', label: 'ডায়াগনস্টিক' },
-  { value: 'Clinic', label: 'ক্লিনিক' },
-  { value: 'Hospital', label: 'হাসপাতাল' },
+const ORG_TYPE_OPTIONS: { value: OrgType; labelKey: string }[] = [
+  { value: 'Diagnostic', labelKey: 'orgType.diagnostic' },
+  { value: 'Clinic', labelKey: 'orgType.clinic' },
+  { value: 'Hospital', labelKey: 'orgType.hospital' },
 ]
 
 export default function AdditionalRolePage() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [applyOpen, setApplyOpen] = useState(false)
   const [selectedType, setSelectedType] = useState<RoleApplicationType | null>(null)
@@ -60,21 +62,21 @@ export default function AdditionalRolePage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">অতিরিক্ত ভূমিকার আবেদন</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t('additionalRole.title')}</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            ডাক্তার, নার্স, মেডিকেল অ্যাসিস্ট্যান্ট, মিডওয়াইফ বা প্রতিষ্ঠান মালিক হিসেবে আবেদন করুন।
+            {t('additionalRole.subtitle')}
           </p>
         </div>
         <Button onClick={openApply}>
           <Plus className="w-4 h-4" />
-          নতুন আবেদন
+          {t('additionalRole.newApplication')}
         </Button>
       </div>
 
       {applications.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
           <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm text-slate-500">এখনো কোনো আবেদন করেননি।</p>
+          <p className="text-sm text-slate-500">{t('additionalRole.noApplicationsYet')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -87,7 +89,10 @@ export default function AdditionalRolePage() {
       <Modal
         isOpen={applyOpen}
         onClose={closeApply}
-        title={selectedType ? ROLE_APPLICATION_TYPES.find(r => r.value === selectedType)?.label ?? '' : 'ভূমিকা নির্বাচন করুন'}
+        title={selectedType ? (() => {
+          const key = ROLE_APPLICATION_TYPES.find(r => r.value === selectedType)?.labelKey
+          return key ? t(key) : ''
+        })() : t('additionalRole.selectRole')}
         size="md"
       >
         {!selectedType ? (
@@ -107,9 +112,9 @@ export default function AdditionalRolePage() {
                     <Icon className="w-5 h-5 text-green-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900">{r.label}</p>
+                    <p className="text-sm font-semibold text-slate-900">{t(r.labelKey)}</p>
                     {alreadyPending && (
-                      <p className="text-xs text-amber-600 mt-0.5">ইতিমধ্যে একটি আবেদন অপেক্ষমান আছে</p>
+                      <p className="text-xs text-amber-600 mt-0.5">{t('additionalRole.alreadyPending')}</p>
                     )}
                   </div>
                 </button>
@@ -134,8 +139,10 @@ export default function AdditionalRolePage() {
 // ─── Application status card ───────────────────────────────────────────────────
 
 function ApplicationCard({ application: app }: { application: RoleApplication }) {
+  const { t } = useTranslation()
   const Icon = ROLE_ICONS[app.role_type]
-  const label = ROLE_APPLICATION_TYPES.find(r => r.value === app.role_type)?.label ?? app.role_type
+  const labelKey = ROLE_APPLICATION_TYPES.find(r => r.value === app.role_type)?.labelKey
+  const label = labelKey ? t(labelKey) : app.role_type
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-start gap-3">
       <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
@@ -148,7 +155,7 @@ function ApplicationCard({ application: app }: { application: RoleApplication })
         </div>
         <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
           <Clock className="w-3 h-3" />
-          আবেদনের তারিখ: {formatDate(app.created_at)}
+          {t('additionalRole.appliedOn')}: {formatDate(app.created_at)}
         </p>
         {app.role_type === 'organization_owner' && app.org_name && (
           <p className="text-xs text-slate-500 mt-1">{app.org_name} · {app.org_type}</p>
@@ -161,11 +168,11 @@ function ApplicationCard({ application: app }: { application: RoleApplication })
         )}
         {app.status === 'Approved' && app.role_type !== 'organization_owner' && (
           <p className="text-xs text-green-600 mt-2">
-            অনুমোদিত হয়েছে — কোনো প্রতিষ্ঠানের মালিক আপনাকে যুক্ত করলে সংশ্লিষ্ট প্যানেলে দেখা যাবে।
+            {t('additionalRole.approvedStaffHint')}
           </p>
         )}
         {app.status === 'Approved' && app.role_type === 'organization_owner' && (
-          <p className="text-xs text-green-600 mt-2">অনুমোদিত হয়েছে — আপনার প্রতিষ্ঠান তৈরি করা হয়েছে।</p>
+          <p className="text-xs text-green-600 mt-2">{t('additionalRole.approvedOrgHint')}</p>
         )}
       </div>
     </div>
@@ -184,6 +191,7 @@ function ApplicationForm({
   isSubmitting: boolean
   errorMsg: string | null
 }) {
+  const { t } = useTranslation()
   const isOrg = roleType === 'organization_owner'
 
   const [registrationNumber, setRegistrationNumber] = useState('')
@@ -206,15 +214,15 @@ function ApplicationForm({
     e.preventDefault()
     setLocalError(null)
 
-    if (!registrationNumber.trim()) return setLocalError('রেজিস্ট্রেশন/লাইসেন্স নম্বর দিন।')
-    if (!document) return setLocalError('প্রমাণপত্র আপলোড করুন।')
+    if (!registrationNumber.trim()) return setLocalError(t('additionalRole.errorRegistrationNumber'))
+    if (!document) return setLocalError(t('additionalRole.errorDocument'))
     if (isOrg) {
-      if (!orgName.trim()) return setLocalError('প্রতিষ্ঠানের নাম দিন।')
-      if (!orgType) return setLocalError('প্রতিষ্ঠানের ধরন নির্বাচন করুন।')
-      if (!validityTill) return setLocalError('মেয়াদ শেষের তারিখ দিন।')
-      if (!orgPhone.trim()) return setLocalError('প্রতিষ্ঠানের ফোন নম্বর দিন।')
-      if (!upazilla.trim() || !district.trim() || !division.trim()) return setLocalError('উপজেলা, জেলা ও বিভাগ দিন।')
-      if (!facilityPhoto) return setLocalError('প্রতিষ্ঠানের ছবি আপলোড করুন।')
+      if (!orgName.trim()) return setLocalError(t('additionalRole.errorOrgName'))
+      if (!orgType) return setLocalError(t('additionalRole.errorOrgType'))
+      if (!validityTill) return setLocalError(t('additionalRole.errorValidityTill'))
+      if (!orgPhone.trim()) return setLocalError(t('additionalRole.errorOrgPhone'))
+      if (!upazilla.trim() || !district.trim() || !division.trim()) return setLocalError(t('additionalRole.errorLocation'))
+      if (!facilityPhoto) return setLocalError(t('additionalRole.errorFacilityPhoto'))
     }
 
     const fd = new FormData()
@@ -239,13 +247,13 @@ function ApplicationForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <Input
-        label={isOrg ? 'প্রতিষ্ঠানের রেজিস্ট্রেশন নম্বর' : 'রেজিস্ট্রেশন/লাইসেন্স নম্বর'}
+        label={isOrg ? t('additionalRole.orgRegistrationNumberLabel') : t('additionalRole.registrationNumberLabel')}
         value={registrationNumber}
         onChange={e => setRegistrationNumber(e.target.value)}
-        placeholder="যেমন: A-12345"
+        placeholder={t('additionalRole.registrationNumberPlaceholder')}
       />
       <FileField
-        label={isOrg ? 'রেজিস্ট্রেশনের ছবি আপলোড করুন' : 'প্রমাণপত্র আপলোড করুন'}
+        label={isOrg ? t('additionalRole.orgRegistrationPhotoLabel') : t('additionalRole.documentLabel')}
         file={document}
         onChange={setDocument}
       />
@@ -253,35 +261,35 @@ function ApplicationForm({
       {isOrg && (
         <>
           <div className="pt-1 border-t border-slate-100" />
-          <Input label="প্রতিষ্ঠানের নাম" value={orgName} onChange={e => setOrgName(e.target.value)} />
+          <Input label={t('additionalRole.orgNameLabel')} value={orgName} onChange={e => setOrgName(e.target.value)} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select
-              label="ধরন"
+              label={t('hospital.type')}
               value={orgType}
               onChange={e => setOrgType(e.target.value as OrgType | '')}
-              options={[{ value: '', label: 'নির্বাচন করুন' }, ...ORG_TYPE_OPTIONS]}
+              options={[{ value: '', label: t('additionalRole.selectPlaceholder') }, ...ORG_TYPE_OPTIONS.map(o => ({ value: o.value, label: t(o.labelKey) }))]}
             />
             <Input
-              label="মেয়াদ শেষের তারিখ"
+              label={t('additionalRole.validityTillLabel')}
               type="date"
               value={validityTill}
               onChange={e => setValidityTill(e.target.value)}
             />
           </div>
-          <Input label="প্রতিষ্ঠানের ফোন নম্বর" value={orgPhone} onChange={e => setOrgPhone(e.target.value)} />
+          <Input label={t('additionalRole.orgPhoneLabel')} value={orgPhone} onChange={e => setOrgPhone(e.target.value)} />
           <Input
-            label="ঠিকানা (ঐচ্ছিক বিস্তারিত)"
+            label={t('additionalRole.addressDetailLabel')}
             value={locationText}
             onChange={e => setLocationText(e.target.value)}
-            placeholder="যেমন: রোড ৫, বাড়ি ১২"
+            placeholder={t('additionalRole.addressPlaceholder')}
           />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Input label="উপজেলা" value={upazilla} onChange={e => setUpazilla(e.target.value)} />
-            <Input label="জেলা" value={district} onChange={e => setDistrict(e.target.value)} />
-            <Input label="বিভাগ" value={division} onChange={e => setDivision(e.target.value)} />
+            <Input label={t('additionalRole.upazillaLabel')} value={upazilla} onChange={e => setUpazilla(e.target.value)} />
+            <Input label={t('additionalRole.districtLabel')} value={district} onChange={e => setDistrict(e.target.value)} />
+            <Input label={t('additionalRole.divisionLabel')} value={division} onChange={e => setDivision(e.target.value)} />
           </div>
-          <Input label="পোস্ট কোড (ঐচ্ছিক)" value={postCode} onChange={e => setPostCode(e.target.value)} />
-          <FileField label="প্রতিষ্ঠানের ছবি আপলোড করুন" file={facilityPhoto} onChange={setFacilityPhoto} />
+          <Input label={t('additionalRole.postCodeLabel')} value={postCode} onChange={e => setPostCode(e.target.value)} />
+          <FileField label={t('additionalRole.facilityPhotoLabel')} file={facilityPhoto} onChange={setFacilityPhoto} />
         </>
       )}
 
@@ -295,11 +303,11 @@ function ApplicationForm({
       <div className="flex justify-between gap-3 pt-2">
         <Button type="button" variant="ghost" onClick={onBack}>
           <ArrowLeft className="w-3.5 h-3.5" />
-          পিছনে
+          {t('additionalRole.back')}
         </Button>
         <div className="flex gap-3">
-          <Button type="button" variant="outline" onClick={onCancel}>বাতিল</Button>
-          <Button type="submit" loading={isSubmitting}>আবেদন জমা দিন</Button>
+          <Button type="button" variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
+          <Button type="submit" loading={isSubmitting}>{t('additionalRole.submitApplication')}</Button>
         </div>
       </div>
     </form>
@@ -307,12 +315,13 @@ function ApplicationForm({
 }
 
 function FileField({ label, file, onChange }: { label: string; file: File | null; onChange: (f: File | null) => void }) {
+  const { t } = useTranslation()
   return (
     <div>
       <label className="block text-sm font-semibold text-slate-700 mb-1.5">{label}</label>
       <label className="flex items-center gap-3 px-4 py-3 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-green-400 hover:bg-green-50/40 transition-colors">
         {file ? <FileText className="w-5 h-5 text-green-600 flex-shrink-0" /> : <Upload className="w-5 h-5 text-slate-400 flex-shrink-0" />}
-        <span className="text-sm text-slate-600 truncate">{file ? file.name : 'ফাইল বেছে নিন (JPG, PNG বা PDF)'}</span>
+        <span className="text-sm text-slate-600 truncate">{file ? file.name : t('additionalRole.chooseFileHint')}</span>
         <input
           type="file"
           accept=".pdf,.jpg,.jpeg,.png"

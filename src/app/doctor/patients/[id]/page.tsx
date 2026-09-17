@@ -2,6 +2,7 @@
 
 import { use, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
@@ -15,6 +16,7 @@ import {
 import { PATIENT_CONDITIONS, type PatientCondition } from '@/types'
 
 export default function DoctorPatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { t } = useTranslation()
   const { id } = use(params)
   const queryClient = useQueryClient()
   const [confirmFlip, setConfirmFlip] = useState<'Positive' | 'Negative' | null>(null)
@@ -62,12 +64,12 @@ export default function DoctorPatientDetailPage({ params }: { params: Promise<{ 
       <div className="space-y-4">
         <Link href="/doctor/patients" className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900">
           <ArrowLeft className="w-4 h-4" />
-          রোগী খুঁজুন
+          {t('doctorPatientDetail.backToSearch')}
         </Link>
         <div className="bg-white rounded-2xl border border-amber-200 p-8 text-center">
           <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
           <p className="text-sm text-slate-500">
-            {error instanceof Error ? error.message : 'রোগী পাওয়া যায়নি।'}
+            {error instanceof Error ? error.message : t('doctorPatientDetail.notFound')}
           </p>
         </div>
       </div>
@@ -81,13 +83,13 @@ export default function DoctorPatientDetailPage({ params }: { params: Promise<{ 
   const accent = isPositive ? 'text-red-600' : 'text-green-600'
   const accentBg = isPositive ? 'bg-red-100' : 'bg-green-100'
 
-  const genderLabel = patient.gender === 'Male' ? 'পুরুষ' : patient.gender === 'Female' ? 'মহিলা' : 'অন্যান্য'
+  const genderLabel = patient.gender === 'Male' ? t('patient.male') : patient.gender === 'Female' ? t('patient.female') : t('patient.other')
 
   return (
     <div className="space-y-6">
       <Link href="/doctor/patients" className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900">
         <ArrowLeft className="w-4 h-4" />
-        রোগী খুঁজুন
+        {t('doctorPatientDetail.backToSearch')}
       </Link>
 
       {/* Patient card — color reflects HIV status */}
@@ -121,7 +123,7 @@ export default function DoctorPatientDetailPage({ params }: { params: Promise<{ 
                   loading={flipMutation.isPending && confirmFlip === 'Negative'}
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  Negative হিসেবে চিহ্নিত করুন
+                  {t('doctorPatientDetail.markAsNegative')}
                 </Button>
               ) : (
                 <Button
@@ -131,7 +133,7 @@ export default function DoctorPatientDetailPage({ params }: { params: Promise<{ 
                   loading={flipMutation.isPending && confirmFlip === 'Positive'}
                 >
                   <AlertTriangle className="w-3.5 h-3.5" />
-                  Positive হিসেবে চিহ্নিত করুন
+                  {t('doctorPatientDetail.markAsPositive')}
                 </Button>
               )}
             </div>
@@ -139,10 +141,10 @@ export default function DoctorPatientDetailPage({ params }: { params: Promise<{ 
 
           {/* Demographic tiles */}
           <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Tile icon={Calendar} label="বয়স / লিঙ্গ" value={`${patient.age} বছর`} sub={genderLabel} />
-            <Tile icon={Droplets} label="রক্তের গ্রুপ" value={patient.blood_group || 'Unknown'} valueClass="text-red-600 font-extrabold" />
-            <Tile icon={Phone} label="ফোন" value={patient.phone ?? 'নেই'} />
-            <Tile icon={MapPin} label="ঠিকানা" value={patient.address || 'নেই'} />
+            <Tile icon={Calendar} label={t('doctorPatientDetail.ageGender')} value={`${patient.age} ${t('doctorPatientDetail.yearsOld')}`} sub={genderLabel} />
+            <Tile icon={Droplets} label={t('doctorPatientDetail.bloodGroup')} value={patient.blood_group || 'Unknown'} valueClass="text-red-600 font-extrabold" />
+            <Tile icon={Phone} label={t('doctorPatientDetail.phone')} value={patient.phone ?? t('doctorPatientDetail.noneShort')} />
+            <Tile icon={MapPin} label={t('doctorPatientDetail.address')} value={patient.address || t('doctorPatientDetail.noneShort')} />
           </div>
 
           {/* Self-reported chronic conditions */}
@@ -154,12 +156,12 @@ export default function DoctorPatientDetailPage({ params }: { params: Promise<{ 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <div className="flex items-center gap-2 mb-4">
           <FileText className="w-5 h-5 text-indigo-600" />
-          <h3 className="font-bold text-slate-900">রোগীর মেডিকেল রিপোর্ট</h3>
-          <span className="text-xs text-slate-400 ml-auto">{reports.length}টি</span>
+          <h3 className="font-bold text-slate-900">{t('doctorPatientDetail.medicalReports')}</h3>
+          <span className="text-xs text-slate-400 ml-auto">{t('doctorPatientDetail.reportsCount', { count: reports.length })}</span>
         </div>
 
         {reports.length === 0 ? (
-          <p className="text-sm text-slate-500 py-6 text-center">এই রোগীর কোনো রিপোর্ট নেই।</p>
+          <p className="text-sm text-slate-500 py-6 text-center">{t('doctorPatientDetail.noReports')}</p>
         ) : (
           <ul className="space-y-2">
             {reports
@@ -185,7 +187,7 @@ export default function DoctorPatientDetailPage({ params }: { params: Promise<{ 
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      দেখুন
+                      {t('doctorPatientDetail.view')}
                     </a>
                     <a
                       href={r.file_url}
@@ -194,7 +196,7 @@ export default function DoctorPatientDetailPage({ params }: { params: Promise<{ 
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      ডাউনলোড
+                      {t('doctorPatientDetail.download')}
                     </a>
                   </div>
                 </li>
@@ -207,14 +209,14 @@ export default function DoctorPatientDetailPage({ params }: { params: Promise<{ 
         isOpen={!!confirmFlip}
         onClose={() => setConfirmFlip(null)}
         onConfirm={() => confirmFlip && flipMutation.mutate(confirmFlip)}
-        title={confirmFlip === 'Positive' ? 'HIV Positive হিসেবে চিহ্নিত করুন' : 'HIV Negative হিসেবে চিহ্নিত করুন'}
+        title={confirmFlip === 'Positive' ? t('doctorPatientDetail.confirmPositiveTitle') : t('doctorPatientDetail.confirmNegativeTitle')}
         message={
           confirmFlip === 'Positive'
-            ? `আপনি কি নিশ্চিত যে ${patient.name}কে HIV Positive হিসেবে চিহ্নিত করতে চান? এই তথ্য রোগীর প্রোফাইলে সংরক্ষিত হবে।`
-            : `আপনি কি ${patient.name}কে HIV Negative হিসেবে চিহ্নিত করতে চান?`
+            ? t('doctorPatientDetail.confirmPositiveMessage', { name: patient.name })
+            : t('doctorPatientDetail.confirmNegativeMessage', { name: patient.name })
         }
         tone={confirmFlip === 'Positive' ? 'warning' : 'primary'}
-        confirmLabel="নিশ্চিত করুন"
+        confirmLabel={t('doctorPatientDetail.confirm')}
         isLoading={flipMutation.isPending}
       />
     </div>
@@ -247,11 +249,12 @@ function Tile({
 }
 
 function ConditionBadges({ conditions }: { conditions: PatientCondition[] }) {
+  const { t } = useTranslation()
   if (conditions.length === 0) {
     return (
       <div className="mt-5 flex items-center gap-2 px-3 py-2.5 bg-white/70 backdrop-blur rounded-xl border border-white/60 text-xs text-slate-500">
         <HeartPulse className="w-4 h-4 text-slate-400 flex-shrink-0" />
-        রোগী কোনো দীর্ঘমেয়াদী রোগ রিপোর্ট করেননি।
+        {t('doctorPatientDetail.noConditionsReported')}
       </div>
     )
   }
@@ -259,7 +262,7 @@ function ConditionBadges({ conditions }: { conditions: PatientCondition[] }) {
     <div className="mt-5 px-3 py-3 bg-white/70 backdrop-blur rounded-xl border border-white/60">
       <div className="flex items-center gap-2 mb-2">
         <HeartPulse className="w-4 h-4 text-amber-600 flex-shrink-0" />
-        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">দীর্ঘমেয়াদী রোগ</p>
+        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{t('doctorPatientDetail.longTermConditions')}</p>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {PATIENT_CONDITIONS.filter(c => conditions.includes(c.value)).map(c => (
@@ -267,7 +270,7 @@ function ConditionBadges({ conditions }: { conditions: PatientCondition[] }) {
             key={c.value}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 ring-1 ring-amber-300"
           >
-            {c.label}
+            {t(c.labelKey)}
           </span>
         ))}
       </div>

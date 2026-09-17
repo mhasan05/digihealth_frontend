@@ -1,10 +1,12 @@
 "use client"
 
+import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import { useAuthGuard } from '@/hooks/use-auth-guard'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 
 export default function DoctorLayout({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation()
   const { ready } = useAuthGuard('doctor')
 
   if (!ready) {
@@ -16,7 +18,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <DashboardLayout pageTitle="Doctor Dashboard">
+    <DashboardLayout pageTitle={t('page.doctorDashboard')}>
       {children}
     </DashboardLayout>
   )

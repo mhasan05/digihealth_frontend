@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,40 +25,6 @@ import type { Appointment, AppointmentStatus, Patient, Doctor, Nurse } from '@/t
 // ── Types ────────────────────────────────────────────────────────────────────
 type Tab = 'all' | 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'
 
-const tabs: { id: Tab; label: string }[] = [
-  { id: 'all',       label: 'সব'      },
-  { id: 'Pending',   label: 'মুলতুবি'  },
-  { id: 'Confirmed', label: 'নিশ্চিত'  },
-  { id: 'Completed', label: 'সম্পন্ন'  },
-  { id: 'Cancelled', label: 'বাতিল'   },
-]
-
-// ── Schemas ───────────────────────────────────────────────────────────────────
-const aptSchema = z.object({
-  patient_id: z.string().min(1, 'রোগী নির্বাচন করুন'),
-  doctor_id:  z.string().optional(),
-  date:       z.string().min(1, 'তারিখ দিন'),
-  time:       z.string().min(1, 'সময় দিন'),
-  reason:     z.string().min(2, 'কারণ দিন'),
-  status:     z.enum(['Pending', 'Confirmed', 'Completed', 'Cancelled']).optional(),
-})
-type AptForm = z.infer<typeof aptSchema>
-
-const walkInSchema = z.object({
-  name:        z.string().min(2,  'নাম দিন'),
-  phone:       z.string().min(11, 'ফোন নম্বর দিন'),
-  age:         z.string().min(1,  'বয়স দিন'),
-  gender:      z.enum(['Male', 'Female', 'Other']),
-  blood_group: z.string().optional(),
-})
-type WalkInForm = z.infer<typeof walkInSchema>
-
-const admitSchema = z.object({
-  bed_id:   z.string().min(1, 'বেড নির্বাচন করুন'),
-  nurse_id: z.string().optional(),
-})
-type AdmitForm = z.infer<typeof admitSchema>
-
 // ── Patient Phone Search ──────────────────────────────────────────────────────
 function PatientSearch({
   patients,
@@ -74,6 +41,7 @@ function PatientSearch({
   error?: string
   onNotFound: (phone: string) => void
 }) {
+  const { t } = useTranslation()
   const [query, setQuery]   = useState('')
   const [open, setOpen]     = useState(false)
   const wrapRef             = useRef<HTMLDivElement>(null)
@@ -108,7 +76,7 @@ function PatientSearch({
   if (selected) {
     return (
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">রোগী</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('apptPage.patientLabel')}</label>
         <div className="flex items-center justify-between px-4 py-3 bg-green-50 border border-green-200 rounded-xl">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
@@ -121,7 +89,7 @@ function PatientSearch({
           </div>
           <button type="button" onClick={onClear}
             className="text-xs font-medium text-green-600 hover:text-green-800 transition-colors">
-            পরিবর্তন
+            {t('apptPage.change')}
           </button>
         </div>
       </div>
@@ -131,7 +99,7 @@ function PatientSearch({
   return (
     <div ref={wrapRef}>
       <label className="block text-sm font-medium text-slate-700 mb-1.5">
-        রোগী খুঁজুন
+        {t('apptPage.searchPatient')}
       </label>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -140,7 +108,7 @@ function PatientSearch({
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          placeholder="ফোন নম্বর, নাম বা হেলথ আইডি দিয়ে খুঁজুন..."
+          placeholder={t('apptPage.searchPatientPlaceholder')}
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all"
         />
         {/* Dropdown results */}
@@ -163,7 +131,7 @@ function PatientSearch({
         )}
         {/* No results hint */}
         {open && query.length >= 2 && results.length === 0 && query.length < 11 && (
-          <p className="mt-1.5 text-xs text-slate-400 pl-1">কোনো রোগী পাওয়া যায়নি</p>
+          <p className="mt-1.5 text-xs text-slate-400 pl-1">{t('apptPage.noPatientFound')}</p>
         )}
       </div>
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
@@ -174,9 +142,43 @@ function PatientSearch({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function AppointmentsPage() {
-  const { user }       = useAuthStore()
-  const hospitalId     = user?.active_hospital_id ?? 'h1'
-  const queryClient    = useQueryClient()
+  const { t }           = useTranslation()
+  const { user }        = useAuthStore()
+  const hospitalId       = user?.active_hospital_id ?? 'h1'
+  const queryClient      = useQueryClient()
+
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'all',       label: t('apptPage.tabAll')       },
+    { id: 'Pending',   label: t('apptPage.tabPending')   },
+    { id: 'Confirmed', label: t('apptPage.tabConfirmed') },
+    { id: 'Completed', label: t('apptPage.tabCompleted') },
+    { id: 'Cancelled', label: t('apptPage.tabCancelled') },
+  ]
+
+  const aptSchema = useMemo(() => z.object({
+    patient_id: z.string().min(1, t('apptPage.selectPatient')),
+    doctor_id:  z.string().optional(),
+    date:       z.string().min(1, t('apptPage.dateRequired')),
+    time:       z.string().min(1, t('apptPage.timeRequired')),
+    reason:     z.string().min(2, t('apptPage.reasonRequired')),
+    status:     z.enum(['Pending', 'Confirmed', 'Completed', 'Cancelled']).optional(),
+  }), [t])
+  type AptForm = z.infer<typeof aptSchema>
+
+  const walkInSchema = useMemo(() => z.object({
+    name:        z.string().min(2,  t('apptPage.nameRequired')),
+    phone:       z.string().min(11, t('apptPage.phoneRequired')),
+    age:         z.string().min(1,  t('apptPage.ageRequired')),
+    gender:      z.enum(['Male', 'Female', 'Other']),
+    blood_group: z.string().optional(),
+  }), [t])
+  type WalkInForm = z.infer<typeof walkInSchema>
+
+  const admitSchema = useMemo(() => z.object({
+    bed_id:   z.string().min(1, t('apptPage.selectBed')),
+    nurse_id: z.string().optional(),
+  }), [t])
+  type AdmitForm = z.infer<typeof admitSchema>
 
   const [activeTab,       setActiveTab]       = useState<Tab>('all')
   const [searchQuery,     setSearchQuery]     = useState('')
@@ -398,12 +400,12 @@ export default function AppointmentsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">অ্যাপয়েন্টমেন্ট ব্যবস্থাপনা</h2>
-          <p className="text-sm text-slate-500 mt-0.5">মোট {visibleAppointments.length}টি অ্যাপয়েন্টমেন্ট</p>
+          <h2 className="text-xl font-bold text-slate-900">{t('apptPage.title')}</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{t('apptPage.totalCount', { count: visibleAppointments.length })}</p>
         </div>
         <Button onClick={handleOpenCreate}>
           <Plus className="w-4 h-4" />
-          নতুন অ্যাপয়েন্টমেন্ট
+          {t('apptPage.newAppointment')}
         </Button>
       </div>
 
@@ -432,7 +434,7 @@ export default function AppointmentsPage() {
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="রোগী, ডাক্তার বা কারণ দিয়ে খুঁজুন..."
+            placeholder={t('apptPage.searchPlaceholder')}
             className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all"
           />
           {searchQuery && (
@@ -461,8 +463,15 @@ export default function AppointmentsPage() {
       {/* Desktop table */}
       <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <Table>
-          <TableHead columns={['রোগী', 'ডাক্তার', 'তারিখ ও সময়', 'কারণ', 'স্ট্যাটাস', 'কার্যক্রম']} />
-          <TableBody isEmpty={filtered.length === 0} emptyMessage={searchQuery || dateFilter ? 'কোনো ফলাফল পাওয়া যায়নি' : 'কোনো অ্যাপয়েন্টমেন্ট নেই'} colSpan={6}>
+          <TableHead columns={[
+            t('apptPage.colPatient'),
+            t('apptPage.colDoctor'),
+            t('apptPage.colDateTime'),
+            t('apptPage.colReason'),
+            t('common.status'),
+            t('common.actions'),
+          ]} />
+          <TableBody isEmpty={filtered.length === 0} emptyMessage={searchQuery || dateFilter ? t('apptPage.noResults') : t('apptPage.noAppointments')} colSpan={6}>
             {filtered.map(a => (
               <TableRow key={a.id}>
                 <TableCell><span className="font-medium">{a.patient_name}</span></TableCell>
@@ -480,31 +489,31 @@ export default function AppointmentsPage() {
                     {a.status === 'Pending' && (
                       <>
                         <button onClick={() => setConfirmId(a.id)}
-                          className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors" title="নিশ্চিত করুন">
+                          className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors" title={t('apptPage.confirm')}>
                           <Check className="w-4 h-4" />
                         </button>
                         <button onClick={() => setCancelId(a.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="বাতিল করুন">
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title={t('apptPage.cancel')}>
                           <X className="w-4 h-4" />
                         </button>
                       </>
                     )}
                     {a.status === 'Confirmed' && !a.admitted && (
                       <button onClick={() => { admitForm.reset(); setAdmitApt(a) }}
-                        className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors" title="ভর্তি করুন">
+                        className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors" title={t('apptPage.admit')}>
                         <BedDouble className="w-4 h-4" />
                       </button>
                     )}
-                    {a.admitted && <span className="text-xs text-green-600 font-medium px-1">ভর্তি</span>}
+                    {a.admitted && <span className="text-xs text-green-600 font-medium px-1">{t('apptPage.admittedShort')}</span>}
                     {!a.admitted && (
                       <button onClick={() => handleOpenEdit(a)}
-                        className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors" title="সম্পাদনা">
+                        className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors" title={t('common.edit')}>
                         <Pencil className="w-4 h-4" />
                       </button>
                     )}
                     {(a.status === 'Pending' || a.status === 'Cancelled') && (
                       <button onClick={() => setDeleteId(a.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="মুছুন">
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title={t('common.delete')}>
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
@@ -553,8 +562,8 @@ export default function AppointmentsPage() {
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={isEdit ? 'অ্যাপয়েন্টমেন্ট সম্পাদনা' : 'নতুন অ্যাপয়েন্টমেন্ট'}
-        subtitle={!isEdit ? 'রোগীর ফোন নম্বর দিয়ে খুঁজুন। না থাকলে নতুন রোগী হিসেবে যোগ করুন।' : undefined}
+        title={isEdit ? t('apptPage.editTitle') : t('apptPage.createTitle')}
+        subtitle={!isEdit ? t('apptPage.createSubtitle') : undefined}
         size="md"
       >
         <form onSubmit={aptForm.handleSubmit(d => isEdit ? updateMutation.mutate(d) : createMutation.mutate(d))}
@@ -563,7 +572,7 @@ export default function AppointmentsPage() {
           {/* Patient section — search on create, locked on edit */}
           {isEdit ? (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">রোগী</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('apptPage.patientLabel')}</label>
               <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
                 <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
                   <User className="w-4 h-4 text-slate-500" />
@@ -588,7 +597,7 @@ export default function AppointmentsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <UserPlus className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                      <p className="text-xs font-bold text-amber-700">নতুন রোগী হিসেবে যোগ করুন</p>
+                      <p className="text-xs font-bold text-amber-700">{t('apptPage.addAsNewPatient')}</p>
                     </div>
                     <button type="button"
                       onClick={() => { setShowWalkIn(false); setWalkInPhone('') }}
@@ -598,29 +607,29 @@ export default function AppointmentsPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input label="পূর্ণ নাম"   error={walkInForm.formState.errors.name?.message}  {...walkInForm.register('name')} />
-                    <Input label="ফোন নম্বর"   error={walkInForm.formState.errors.phone?.message} {...walkInForm.register('phone')} />
-                    <Input label="বয়স" type="number" error={walkInForm.formState.errors.age?.message} {...walkInForm.register('age')} />
-                    <Select label="লিঙ্গ" error={walkInForm.formState.errors.gender?.message}
+                    <Input label={t('apptPage.fullName')} error={walkInForm.formState.errors.name?.message}  {...walkInForm.register('name')} />
+                    <Input label={t('common.phone')} error={walkInForm.formState.errors.phone?.message} {...walkInForm.register('phone')} />
+                    <Input label={t('patient.age')} type="number" error={walkInForm.formState.errors.age?.message} {...walkInForm.register('age')} />
+                    <Select label={t('patient.gender')} error={walkInForm.formState.errors.gender?.message}
                       options={[
-                        { value: 'Male',   label: 'পুরুষ'   },
-                        { value: 'Female', label: 'মহিলা'   },
-                        { value: 'Other',  label: 'অন্যান্য' },
+                        { value: 'Male',   label: t('patient.male')   },
+                        { value: 'Female', label: t('patient.female') },
+                        { value: 'Other',  label: t('patient.other')  },
                       ]}
                       {...walkInForm.register('gender')}
                     />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-                    <Select label="রক্তের গ্রুপ (ঐচ্ছিক)"
+                    <Select label={t('apptPage.bloodGroupOptional')}
                       options={[
-                        { value: '', label: 'অজানা' },
+                        { value: '', label: t('settings.unknownBloodGroup') },
                         ...['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(v => ({ value: v, label: v })),
                       ]}
                       {...walkInForm.register('blood_group')}
                     />
                     <Button type="button" loading={walkInMutation.isPending}
                       onClick={walkInForm.handleSubmit(d => walkInMutation.mutate(d))}>
-                      তৈরি করুন ও নির্বাচন করুন
+                      {t('apptPage.createAndSelect')}
                     </Button>
                   </div>
                 </div>
@@ -639,30 +648,30 @@ export default function AppointmentsPage() {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <Input label="তারিখ" type="date" error={aptForm.formState.errors.date?.message} {...aptForm.register('date')} />
-            <Input label="সময়"   type="time" error={aptForm.formState.errors.time?.message}  {...aptForm.register('time')} />
+            <Input label={t('apptPage.date')} type="date" error={aptForm.formState.errors.date?.message} {...aptForm.register('date')} />
+            <Input label={t('apptPage.time')} type="time" error={aptForm.formState.errors.time?.message}  {...aptForm.register('time')} />
           </div>
 
-          <Input label="কারণ" error={aptForm.formState.errors.reason?.message} {...aptForm.register('reason')} />
+          <Input label={t('apptPage.reason')} error={aptForm.formState.errors.reason?.message} {...aptForm.register('reason')} />
 
           {/* Status — editable on edit only */}
           {isEdit && (
-            <Select label="স্ট্যাটাস"
+            <Select label={t('common.status')}
               error={aptForm.formState.errors.status?.message}
               options={[
-                { value: 'Pending',   label: 'মুলতুবি' },
-                { value: 'Confirmed', label: 'নিশ্চিত' },
-                { value: 'Completed', label: 'সম্পন্ন' },
-                { value: 'Cancelled', label: 'বাতিল'   },
+                { value: 'Pending',   label: t('apptPage.tabPending')   },
+                { value: 'Confirmed', label: t('apptPage.tabConfirmed') },
+                { value: 'Completed', label: t('apptPage.tabCompleted') },
+                { value: 'Cancelled', label: t('apptPage.tabCancelled') },
               ]}
               {...aptForm.register('status')}
             />
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="ghost" onClick={closeModal}>বাতিল</Button>
+            <Button type="button" variant="ghost" onClick={closeModal}>{t('common.cancel')}</Button>
             <Button type="submit" loading={createMutation.isPending || updateMutation.isPending}>
-              {isEdit ? 'আপডেট করুন' : 'যোগ করুন'}
+              {isEdit ? t('staffPage.update') : t('common.add')}
             </Button>
           </div>
         </form>
@@ -672,14 +681,14 @@ export default function AppointmentsPage() {
       <Modal
         isOpen={!!admitApt}
         onClose={() => { setAdmitApt(null); setSelectedNurse(null); admitForm.reset() }}
-        title={`রোগী ভর্তি · ${admitApt?.patient_name ?? ''}`}
+        title={t('apptPage.admitModalTitle', { name: admitApt?.patient_name ?? '' })}
         size="sm"
       >
         <form onSubmit={admitForm.handleSubmit(d => admitMutation.mutate(d))} className="space-y-4">
-          <Select label="বেড নির্বাচন করুন"
+          <Select label={t('apptPage.selectBed')}
             error={admitForm.formState.errors.bed_id?.message}
-            options={availableBeds.map(b => ({ value: b.id, label: `বেড ${b.number} · ${b.ward} (${b.type})` }))}
-            placeholder="বেড নির্বাচন করুন"
+            options={availableBeds.map(b => ({ value: b.id, label: t('apptPage.bedOption', { number: b.number, ward: b.ward, type: b.type }) }))}
+            placeholder={t('apptPage.selectBed')}
             {...admitForm.register('bed_id')}
           />
           <NurseSearch
@@ -689,8 +698,8 @@ export default function AppointmentsPage() {
             onClear={() => { setSelectedNurse(null); admitForm.setValue('nurse_id', '') }}
           />
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="ghost" onClick={() => { setAdmitApt(null); setSelectedNurse(null); admitForm.reset() }}>বাতিল</Button>
-            <Button type="submit" loading={admitMutation.isPending}>ভর্তি করুন</Button>
+            <Button type="button" variant="ghost" onClick={() => { setAdmitApt(null); setSelectedNurse(null); admitForm.reset() }}>{t('common.cancel')}</Button>
+            <Button type="submit" loading={admitMutation.isPending}>{t('apptPage.admit')}</Button>
           </div>
         </form>
       </Modal>
@@ -698,26 +707,26 @@ export default function AppointmentsPage() {
       {/* ── Confirm / Cancel / Delete dialogs ────────────────────────────── */}
       <ConfirmDialog isOpen={!!confirmId} onClose={() => setConfirmId(null)}
         onConfirm={() => confirmId && confirmMutation.mutate(confirmId)}
-        title="অ্যাপয়েন্টমেন্ট নিশ্চিত করুন"
-        message="আপনি কি এই অ্যাপয়েন্টমেন্টটি নিশ্চিত করতে চান?"
+        title={t('apptPage.admitConfirmTitle')}
+        message={t('apptPage.admitConfirmMessage')}
         tone="primary"
-        confirmLabel="হ্যাঁ"
-        cancelLabel="না"
+        confirmLabel={t('apptPage.yes')}
+        cancelLabel={t('apptPage.no')}
         isLoading={confirmMutation.isPending}
       />
       <ConfirmDialog isOpen={!!cancelId} onClose={() => setCancelId(null)}
         onConfirm={() => cancelId && cancelMutation.mutate(cancelId)}
-        title="অ্যাপয়েন্টমেন্ট বাতিল করুন"
-        message="আপনি কি এই অ্যাপয়েন্টমেন্টটি বাতিল করতে চান?"
+        title={t('apptPage.cancelTitle')}
+        message={t('apptPage.cancelMessage')}
         tone="warning"
-        confirmLabel="হ্যাঁ, বাতিল করুন"
-        cancelLabel="না"
+        confirmLabel={t('apptPage.yesCancelIt')}
+        cancelLabel={t('apptPage.no')}
         isLoading={cancelMutation.isPending}
       />
       <ConfirmDialog isOpen={!!deleteId} onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        title="অ্যাপয়েন্টমেন্ট মুছুন"
-        message="আপনি কি এই অ্যাপয়েন্টমেন্টটি স্থায়ীভাবে মুছে ফেলতে চান?"
+        title={t('apptPage.deleteTitle')}
+        message={t('apptPage.deleteMessage')}
         isLoading={deleteMutation.isPending}
       />
     </div>

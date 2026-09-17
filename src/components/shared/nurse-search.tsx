@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Search, HeartPulse } from 'lucide-react'
 import type { Nurse } from '@/types'
 
@@ -13,6 +14,7 @@ interface NurseSearchProps {
 }
 
 export function NurseSearch({ nurses, selected, onSelect, onClear, optional = true }: NurseSearchProps) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [open, setOpen]   = useState(false)
   const wrapRef           = useRef<HTMLDivElement>(null)
@@ -35,7 +37,7 @@ export function NurseSearch({ nurses, selected, onSelect, onClear, optional = tr
   if (selected) {
     return (
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">নার্স</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('searchWidget.nurseLabel')}</label>
         <div className="flex items-center justify-between px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
@@ -46,14 +48,14 @@ export function NurseSearch({ nurses, selected, onSelect, onClear, optional = tr
               <p className="text-xs text-slate-500">
                 {selected.ward}
                 {selected.active_admission_count != null && (
-                  <span className="ml-1 text-rose-600">· সক্রিয় রোগী: {selected.active_admission_count}</span>
+                  <span className="ml-1 text-rose-600">· {t('searchWidget.activePatients')}: {selected.active_admission_count}</span>
                 )}
               </p>
             </div>
           </div>
           <button type="button" onClick={onClear}
             className="text-xs font-medium text-rose-600 hover:text-rose-800 transition-colors">
-            পরিবর্তন
+            {t('searchWidget.change')}
           </button>
         </div>
       </div>
@@ -64,7 +66,7 @@ export function NurseSearch({ nurses, selected, onSelect, onClear, optional = tr
   return (
     <div ref={wrapRef}>
       <label className="block text-sm font-medium text-slate-700 mb-1.5">
-        নার্স খুঁজুন {optional && <span className="text-slate-400 font-normal">(ঐচ্ছিক)</span>}
+        {t('searchWidget.nurseSearchLabel')} {optional && <span className="text-slate-400 font-normal">{t('searchWidget.optional')}</span>}
       </label>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -73,7 +75,7 @@ export function NurseSearch({ nurses, selected, onSelect, onClear, optional = tr
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          placeholder={empty ? 'কোনো নার্স নেই' : 'নাম বা ওয়ার্ড দিয়ে খুঁজুন...'}
+          placeholder={empty ? t('searchWidget.nurseNone') : t('searchWidget.nursePlaceholder')}
           disabled={empty}
           className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all disabled:bg-slate-50 disabled:cursor-not-allowed"
         />
@@ -91,7 +93,7 @@ export function NurseSearch({ nurses, selected, onSelect, onClear, optional = tr
                   <p className="text-xs text-slate-400 truncate">
                     {n.ward}
                     {n.active_admission_count != null && (
-                      <span className="ml-1 text-rose-600">· সক্রিয় রোগী: {n.active_admission_count}</span>
+                      <span className="ml-1 text-rose-600">· {t('searchWidget.activePatients')}: {n.active_admission_count}</span>
                     )}
                   </p>
                 </div>
@@ -100,7 +102,7 @@ export function NurseSearch({ nurses, selected, onSelect, onClear, optional = tr
           </div>
         )}
         {open && query.length >= 1 && results.length === 0 && !empty && (
-          <p className="mt-1.5 text-xs text-slate-400 pl-1">কোনো নার্স পাওয়া যায়নি</p>
+          <p className="mt-1.5 text-xs text-slate-400 pl-1">{t('searchWidget.nurseNotFound')}</p>
         )}
       </div>
     </div>

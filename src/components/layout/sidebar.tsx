@@ -185,7 +185,7 @@ export function Sidebar({ hospitalName, isOpen, onClose }: SidebarProps) {
           <button
             onClick={onClose}
             className="lg:hidden p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg"
-            aria-label="Close sidebar"
+            aria-label={t('common.closeSidebar')}
           >
             <X className="w-4 h-4" />
           </button>

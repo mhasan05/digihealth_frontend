@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -14,18 +15,19 @@ import { Button } from '@/components/ui/button'
 import { HeartPulse, ChevronRight, Eye, EyeOff } from 'lucide-react'
 import { derivePortals, PORTAL_ROUTES } from '@/types'
 
-const loginSchema = z.object({
-  identifier: z.string().min(1, 'এই ঘরটি পূরণ করতে হবে'),
-  password:   z.string().min(1, 'পাসওয়ার্ড দিন'),
-  rememberMe: z.boolean().optional(),
-})
-type LoginForm = z.infer<typeof loginSchema>
-
 export default function LoginPage() {
+  const { t } = useTranslation()
   const [showPass, setShowPass] = useState(false)
   const [error,    setError]    = useState('')
   const router = useRouter()
   const { login } = useAuthStore()
+
+  const loginSchema = useMemo(() => z.object({
+    identifier: z.string().min(1, t('auth.fieldRequired')),
+    password:   z.string().min(1, t('auth.passwordRequired')),
+    rememberMe: z.boolean().optional(),
+  }), [t])
+  type LoginForm = z.infer<typeof loginSchema>
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -41,7 +43,7 @@ export default function LoginPage() {
       const portals = derivePortals(user.roles)
       router.push(PORTAL_ROUTES[portals[0]])
     },
-    onError: (err: Error) => setError(err.message || 'লগইন ব্যর্থ হয়েছে'),
+    onError: (err: Error) => setError(err.message || t('auth.loginFailed')),
   })
 
   return (
@@ -54,15 +56,15 @@ export default function LoginPage() {
           </div>
           <div className="text-center">
             <p className="text-xl font-extrabold text-slate-900 tracking-tight">DigiHealth</p>
-            <p className="text-xs text-slate-500 mt-0.5">ডিজিটাল স্বাস্থ্য প্ল্যাটফর্ম</p>
+            <p className="text-xs text-slate-500 mt-0.5">{t('auth.tagline')}</p>
           </div>
         </div>
 
         {/* Card */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
           <div className="mb-6">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">আবার স্বাগতম</h1>
-            <p className="text-slate-500 text-sm mt-1">আপনার অ্যাকাউন্টে লগইন করুন</p>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">{t('greeting.welcomeBack')}</h1>
+            <p className="text-slate-500 text-sm mt-1">{t('auth.loginSubtitle')}</p>
           </div>
 
           <form
@@ -72,17 +74,17 @@ export default function LoginPage() {
             className="space-y-4"
           >
             <Input
-              label="ফোন নম্বর / হেলথ আইডি"
-              placeholder="০১৭XXXXXXXX অথবা DH-190000000001"
+              label={t('auth.identifierLabel')}
+              placeholder={t('auth.identifierPlaceholder')}
               error={errors.identifier?.message}
               autoComplete="username"
               {...register('identifier')}
             />
             <div className="relative">
               <Input
-                label="পাসওয়ার্ড"
+                label={t('auth.password')}
                 type={showPass ? 'text' : 'password'}
-                placeholder="আপনার পাসওয়ার্ড দিন"
+                placeholder={t('auth.passwordPlaceholder')}
                 error={errors.password?.message}
                 autoComplete="current-password"
                 {...register('password')}
@@ -91,7 +93,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => setShowPass(!showPass)}
                 className="absolute right-3 top-9 text-slate-400 hover:text-slate-600 p-0.5"
-                aria-label="পাসওয়ার্ড দেখুন/লুকান"
+                aria-label={t('auth.togglePasswordAria')}
                 tabIndex={-1}
               >
                 {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -104,7 +106,7 @@ export default function LoginPage() {
                 className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500 focus:ring-offset-0"
                 {...register('rememberMe')}
               />
-              <span className="text-sm text-slate-600">আমাকে মনে রাখুন</span>
+              <span className="text-sm text-slate-600">{t('auth.rememberMe')}</span>
             </label>
 
             {error && (
@@ -114,27 +116,27 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" className="w-full" size="lg" loading={loginMutation.isPending}>
-              লগইন করুন
+              {t('auth.login')}
               <ChevronRight className="w-4 h-4" />
             </Button>
           </form>
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200" /></div>
-            <div className="relative flex justify-center"><span className="bg-white px-3 text-xs text-slate-400">অথবা</span></div>
+            <div className="relative flex justify-center"><span className="bg-white px-3 text-xs text-slate-400">{t('common.or')}</span></div>
           </div>
 
           <p className="text-center text-sm text-slate-600">
-            অ্যাকাউন্ট নেই?{' '}
+            {t('auth.noAccount')}{' '}
             <Link href="/register" className="text-green-600 hover:text-green-700 font-semibold hover:underline">
-              নিবন্ধন করুন
+              {t('auth.register')}
             </Link>
           </p>
         </div>
 
         {/* Footer mark */}
         <p className="text-center text-[11px] text-slate-400 mt-6">
-          © {new Date().getFullYear()} DigiHealth · বাংলাদেশ
+          © {new Date().getFullYear()} DigiHealth · {t('auth.country')}
         </p>
       </div>
     </div>

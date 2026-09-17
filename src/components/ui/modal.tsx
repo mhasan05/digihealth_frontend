@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +23,7 @@ const sizeClasses = {
 }
 
 export function Modal({ isOpen, onClose, title, subtitle, children, size = 'md' }: ModalProps) {
+  const { t } = useTranslation()
   const handleEscape = useCallback(
     (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() },
     [onClose]
@@ -68,7 +70,7 @@ export function Modal({ isOpen, onClose, title, subtitle, children, size = 'md' 
           <button
             onClick={onClose}
             className="ml-3 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0"
-            aria-label="বন্ধ করুন"
+            aria-label={t('common.close')}
           >
             <X className="w-4 h-4" />
           </button>

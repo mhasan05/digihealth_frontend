@@ -1,6 +1,7 @@
 "use client"
 
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { api } from '@/lib/api'
 import { SkeletonDashboard } from '@/components/ui/skeleton'
 import { formatDateTime } from '@/lib/utils'
@@ -51,6 +52,7 @@ const ACTIVITY_ICONS: Record<string, { icon: React.ElementType; bg: string; colo
 }
 
 export default function AdminDashboard() {
+  const { t } = useTranslation()
   const { data, isLoading } = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: () => api.admin.getDashboard(),
@@ -62,26 +64,26 @@ export default function AdminDashboard() {
   const kpis: KpiCardProps[] = [
     {
       icon: Building2,
-      label: 'Total Hospitals',
+      label: t('adminDashboard.totalHospitals'),
       value: data.total_hospitals,
       trend: '+12%',
       color: { icon: 'text-blue-600', bg: 'bg-blue-50', text: 'text-blue-700' },
     },
     {
       icon: Users,
-      label: 'Hospital Owners',
+      label: t('adminDashboard.hospitalOwners'),
       value: data.total_owners,
       color: { icon: 'text-violet-600', bg: 'bg-violet-50', text: 'text-violet-700' },
     },
     {
       icon: UserCheck,
-      label: 'Active Managers',
+      label: t('adminDashboard.activeManagers'),
       value: data.total_managers,
       color: { icon: 'text-teal-600', bg: 'bg-teal-50', text: 'text-teal-700' },
     },
     {
       icon: User,
-      label: 'Registered Patients',
+      label: t('adminDashboard.registeredPatients'),
       value: data.total_patients,
       trend: '+8%',
       color: { icon: 'text-sky-600', bg: 'bg-sky-50', text: 'text-sky-700' },
@@ -97,9 +99,9 @@ export default function AdminDashboard() {
             <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center">
               <Shield className="w-4 h-4 text-violet-600" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">Admin Overview</h2>
+            <h2 className="text-xl font-bold text-slate-900">{t('adminDashboard.overview')}</h2>
           </div>
-          <p className="text-sm text-slate-500 ml-9">System-wide statistics and recent activity</p>
+          <p className="text-sm text-slate-500 ml-9">{t('adminDashboard.subtitle')}</p>
         </div>
       </div>
 
@@ -115,8 +117,8 @@ export default function AdminDashboard() {
             <Activity className="w-4 h-4 text-slate-600" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Recent Activity</h3>
-            <p className="text-xs text-slate-400">Last 10 system events</p>
+            <h3 className="text-sm font-bold text-slate-900">{t('adminDashboard.recentActivity')}</h3>
+            <p className="text-xs text-slate-400">{t('adminDashboard.last10Events')}</p>
           </div>
         </div>
 
