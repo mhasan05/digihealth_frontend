@@ -25,7 +25,6 @@ const NAV_ITEMS: Record<Portal, NavItem[]> = {
   user: [
     { href: '/patient',                 labelKey: 'nav.dashboard',       icon: LayoutDashboard },
     { href: '/patient/reports',         labelKey: 'nav.myReports',       icon: FileText },
-    { href: '/patient/additional-role', labelKey: 'nav.additionalRole',  icon: UserPlus },
     { href: '/patient/privacy',         labelKey: 'nav.privacy',         icon: ShieldCheck },
   ],
   admin: [
