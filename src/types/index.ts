@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'owner' | 'manager' | 'pathologist' | 'doctor' | 'patient'
+export type Role = 'admin' | 'owner' | 'manager' | 'pathologist' | 'doctor' | 'patient' | 'field_staff'
 
 export type Portal = 'user' | 'admin' | 'owner' | 'manager' | 'pathologist' | 'doctor'
 
@@ -7,9 +7,15 @@ const PORTAL_PRIORITY: Portal[] = ['admin', 'owner', 'manager', 'pathologist', '
 export function derivePortals(roles: Role[]): Portal[] {
   const set = new Set<Portal>(['user'])
   for (const r of roles) {
-    if (r !== 'patient') set.add(r as Portal)
+    // Field staff work in the mobile app only — there is no web portal for them.
+    if (r !== 'patient' && r !== 'field_staff') set.add(r as Portal)
   }
   return PORTAL_PRIORITY.filter(p => set.has(p))
+}
+
+/** Accounts that only collect prescriptions in the field can't use the web app. */
+export function isFieldStaffOnly(roles: Role[]): boolean {
+  return roles.length > 0 && roles.every(r => r === 'field_staff')
 }
 
 export const PORTAL_ROUTES: Record<Portal, string> = {
@@ -278,6 +284,51 @@ export interface MedicalReport {
   file_url: string
   size: number
   uploaded_at: string
+}
+
+// ── Field-collected prescriptions ─────────────────────────────────────────────
+
+export interface FieldStaff {
+  id: string
+  user_id: string
+  name: string
+  phone: string
+  area: string
+  status: 'Active' | 'Inactive'
+  prescription_count: number
+  created_at: string
+}
+
+export type FieldPrescriptionStatus = 'unclaimed' | 'claimed' | 'disputed'
+
+export interface FieldPrescriptionImage {
+  id: string
+  page_no: number
+  file_url: string
+  size: number
+  content_type: string
+}
+
+export interface FieldPrescription {
+  id: string
+  phone: string
+  patient_name: string
+  age: number | null
+  gender: Gender | ''
+  notes: string
+  status: FieldPrescriptionStatus
+  collected_by_name: string
+  collected_at: string
+  claimed_at: string | null
+  images: FieldPrescriptionImage[]
+}
+
+export interface AdminFieldPrescription extends FieldPrescription {
+  collected_by_id: string | null
+  patient_id: string | null
+  patient_account_name: string
+  consent_given: boolean
+  dispute_reason: string
 }
 
 export interface ReportAccessLog {

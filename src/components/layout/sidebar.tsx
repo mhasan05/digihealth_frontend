@@ -9,7 +9,7 @@ import {
   Stethoscope, BedDouble, FlaskConical, Calendar,
   ClipboardList, TestTube, FileText, ShieldCheck, X,
   HeartPulse, ChevronRight, Activity,
-  CheckCircle, Clock, ArrowLeftRight, UserPlus,
+  CheckCircle, Clock, ArrowLeftRight, UserPlus, Smartphone, ScrollText,
 } from 'lucide-react'
 import type { Portal } from '@/types'
 import { PORTAL_ROUTES } from '@/types'
@@ -25,6 +25,7 @@ const NAV_ITEMS: Record<Portal, NavItem[]> = {
   user: [
     { href: '/patient',                 labelKey: 'nav.dashboard',       icon: LayoutDashboard },
     { href: '/patient/reports',         labelKey: 'nav.myReports',       icon: FileText },
+    { href: '/patient/prescriptions',   labelKey: 'nav.prescriptions',   icon: ScrollText },
     { href: '/patient/privacy',         labelKey: 'nav.privacy',         icon: ShieldCheck },
   ],
   admin: [
@@ -32,6 +33,8 @@ const NAV_ITEMS: Record<Portal, NavItem[]> = {
     { href: '/admin/hospitals',           labelKey: 'nav.hospitals',        icon: Building2 },
     { href: '/admin/doctors',             labelKey: 'nav.doctors',          icon: Stethoscope },
     { href: '/admin/role-applications',   labelKey: 'nav.roleApplications', icon: UserPlus },
+    { href: '/admin/field-staff',         labelKey: 'nav.fieldStaff',       icon: Smartphone },
+    { href: '/admin/field-prescriptions', labelKey: 'nav.fieldPrescriptions', icon: ScrollText },
   ],
   owner: [
     { href: '/owner',                    labelKey: 'nav.dashboard',           icon: LayoutDashboard },

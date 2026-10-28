@@ -20,7 +20,10 @@
     "additionalRole": "Additional Role",
     "roleApplications": "Role Applications",
     "medicalAssistants": "Medical Assistants",
-    "midwives": "Midwives"
+    "midwives": "Midwives",
+    "prescriptions": "Prescriptions",
+    "fieldStaff": "Field Staff",
+    "fieldPrescriptions": "Field Prescriptions"
   },
   "auth": {
     "login": "Login",
@@ -61,7 +64,8 @@
     "registerFailed": "Registration failed. Please try again.",
     "nameMinLength": "Name must be at least 2 characters",
     "validPhone": "Enter a valid phone number",
-    "passwordMinLength": "Password must be at least 6 characters"
+    "passwordMinLength": "Password must be at least 6 characters",
+    "fieldStaffUseApp": "Field staff accounts can only be used in the DigiHealth Field mobile app."
   },
   "common": {
     "add": "Add",
@@ -587,7 +591,9 @@
     "confirmNegativeMessage": "Are you sure you want to mark {{name}} as HIV Negative?",
     "confirm": "Confirm",
     "noConditionsReported": "Patient has not reported any long-term conditions.",
-    "longTermConditions": "Long-term Conditions"
+    "longTermConditions": "Long-term Conditions",
+    "fieldPrescriptions": "Prescriptions Collected by Field Staff",
+    "noFieldPrescriptions": "No field-collected prescriptions for this patient."
   },
   "doctorPatientSearch": {
     "title": "Search Patient",
@@ -1022,5 +1028,67 @@
     "revenueOverview": "Revenue Overview",
     "todaySchedule": "Today's Schedule",
     "pendingTasks": "Pending Tasks"
+  },
+  "fieldRx": {
+    "ageYears": "{{age}} yrs",
+    "collectedBy": "Collected by {{name}}",
+    "unknownStaff": "field staff",
+    "openPage": "Open page {{page}}",
+    "viewerTitle": "Prescription",
+    "pageOf": "Page {{page}} of {{total}}",
+    "pdfFallback": "This PDF cannot be previewed here. Use \"Open original\".",
+    "openOriginal": "Open original",
+    "status": {
+      "unclaimed": "Waiting for account",
+      "claimed": "Linked",
+      "disputed": "Disputed"
+    }
+  },
+  "patientRx": {
+    "subtitle": "{{count}} prescription(s) collected for your phone number by DigiHealth field staff",
+    "empty": "No prescriptions yet.",
+    "emptyHint": "Prescriptions collected for your phone number by our field staff will appear here.",
+    "notMine": "Not mine",
+    "disputeTitle": "Report prescription",
+    "disputeMessage": "This prescription will be removed from your account and sent to an admin for review.",
+    "reasonOptional": "Reason (optional)",
+    "disputeConfirm": "Report as not mine"
+  },
+  "fieldStaffPage": {
+    "title": "Field Staff",
+    "subtitle": "{{count}} field staff collecting prescriptions with the mobile app",
+    "add": "Add Field Staff",
+    "addTitle": "Add Field Staff",
+    "editTitle": "Edit Field Staff",
+    "searchPlaceholder": "Search by name, phone or area...",
+    "colArea": "Area",
+    "colUploads": "Uploads",
+    "colAddedOn": "Added On",
+    "uploadsShort": "{{count}} uploads",
+    "empty": "No field staff yet.",
+    "areaOptional": "Area (optional)",
+    "areaPlaceholder": "e.g. Mirpur, Dhaka",
+    "password": "Password",
+    "newPasswordOptional": "New password (optional)",
+    "passwordHint": "Leave blank to keep the current password.",
+    "nameRequired": "Name is required",
+    "phoneInvalid": "Enter a valid mobile number (01XXXXXXXXX)",
+    "passwordMin": "Password must be at least 6 characters",
+    "activate": "Activate",
+    "deactivate": "Deactivate (blocks login)"
+  },
+  "fieldRxPage": {
+    "title": "Field Prescriptions",
+    "subtitle": "Prescriptions uploaded by field staff. They are shown to the patient and doctors once an account exists for the phone number.",
+    "staff": "Field staff",
+    "from": "From",
+    "to": "To",
+    "empty": "No prescriptions match these filters.",
+    "linkedTo": "Linked to {{name}}",
+    "disputedNote": "The account holder reported this as not theirs.",
+    "returnToUnclaimed": "Return to unclaimed",
+    "fixPhone": "Fix phone",
+    "fixPhoneTitle": "Correct phone number",
+    "fixPhoneMessage": "The prescription will be unlinked and linked again to the account on the new number, if one exists."
   }
 }

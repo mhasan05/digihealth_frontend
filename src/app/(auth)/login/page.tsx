@@ -13,7 +13,7 @@ import { useAuthStore } from '@/store/auth-store'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { HeartPulse, ChevronRight, Eye, EyeOff } from 'lucide-react'
-import { derivePortals, PORTAL_ROUTES } from '@/types'
+import { derivePortals, isFieldStaffOnly, PORTAL_ROUTES } from '@/types'
 
 export default function LoginPage() {
   const { t } = useTranslation()
@@ -39,6 +39,10 @@ export default function LoginPage() {
       return api.auth.login({ identifier: data.identifier, password: data.password, method })
     },
     onSuccess: ({ user, token }) => {
+      if (isFieldStaffOnly(user.roles)) {
+        setError(t('auth.fieldStaffUseApp'))
+        return
+      }
       login(user, token)
       const portals = derivePortals(user.roles)
       router.push(PORTAL_ROUTES[portals[0]])

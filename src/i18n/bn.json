@@ -20,7 +20,10 @@
     "additionalRole": "অতিরিক্ত ভূমিকা",
     "roleApplications": "ভূমিকার আবেদন",
     "medicalAssistants": "মেডিকেল অ্যাসিস্ট্যান্ট",
-    "midwives": "মিডওয়াইফ"
+    "midwives": "মিডওয়াইফ",
+    "prescriptions": "প্রেসক্রিপশন",
+    "fieldStaff": "মাঠকর্মী",
+    "fieldPrescriptions": "মাঠ প্রেসক্রিপশন"
   },
   "auth": {
     "login": "লগইন করুন",
@@ -61,7 +64,8 @@
     "registerFailed": "নিবন্ধন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।",
     "nameMinLength": "নাম কমপক্ষে ২ অক্ষর হতে হবে",
     "validPhone": "সঠিক ফোন নম্বর দিন",
-    "passwordMinLength": "পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে"
+    "passwordMinLength": "পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে",
+    "fieldStaffUseApp": "মাঠকর্মী অ্যাকাউন্ট শুধুমাত্র DigiHealth Field মোবাইল অ্যাপে ব্যবহার করা যায়।"
   },
   "common": {
     "add": "যোগ করুন",
@@ -587,7 +591,9 @@
     "confirmNegativeMessage": "আপনি কি {{name}}কে HIV Negative হিসেবে চিহ্নিত করতে চান?",
     "confirm": "নিশ্চিত করুন",
     "noConditionsReported": "রোগী কোনো দীর্ঘমেয়াদী রোগ রিপোর্ট করেননি।",
-    "longTermConditions": "দীর্ঘমেয়াদী রোগ"
+    "longTermConditions": "দীর্ঘমেয়াদী রোগ",
+    "fieldPrescriptions": "মাঠকর্মীর সংগৃহীত প্রেসক্রিপশন",
+    "noFieldPrescriptions": "এই রোগীর কোনো মাঠ প্রেসক্রিপশন নেই।"
   },
   "doctorPatientSearch": {
     "title": "রোগী খুঁজুন",
@@ -1022,5 +1028,67 @@
     "revenueOverview": "আয়ের সারসংক্ষেপ",
     "todaySchedule": "আজকের সময়সূচি",
     "pendingTasks": "অপেক্ষমান কাজ"
+  },
+  "fieldRx": {
+    "ageYears": "{{age}} বছর",
+    "collectedBy": "সংগ্রহ করেছেন {{name}}",
+    "unknownStaff": "মাঠকর্মী",
+    "openPage": "পৃষ্ঠা {{page}} খুলুন",
+    "viewerTitle": "প্রেসক্রিপশন",
+    "pageOf": "পৃষ্ঠা {{page}} / {{total}}",
+    "pdfFallback": "এই PDF এখানে দেখা যাচ্ছে না। \"মূল ফাইল খুলুন\" ব্যবহার করুন।",
+    "openOriginal": "মূল ফাইল খুলুন",
+    "status": {
+      "unclaimed": "অ্যাকাউন্টের অপেক্ষায়",
+      "claimed": "সংযুক্ত",
+      "disputed": "আপত্তি জানানো"
+    }
+  },
+  "patientRx": {
+    "subtitle": "আপনার ফোন নম্বরে DigiHealth মাঠকর্মীদের সংগৃহীত {{count}}টি প্রেসক্রিপশন",
+    "empty": "এখনও কোনো প্রেসক্রিপশন নেই।",
+    "emptyHint": "আপনার ফোন নম্বরে আমাদের মাঠকর্মীদের সংগৃহীত প্রেসক্রিপশন এখানে দেখা যাবে।",
+    "notMine": "আমার নয়",
+    "disputeTitle": "প্রেসক্রিপশন রিপোর্ট করুন",
+    "disputeMessage": "এই প্রেসক্রিপশনটি আপনার অ্যাকাউন্ট থেকে সরিয়ে অ্যাডমিনের কাছে পর্যালোচনার জন্য পাঠানো হবে।",
+    "reasonOptional": "কারণ (ঐচ্ছিক)",
+    "disputeConfirm": "আমার নয় বলে রিপোর্ট করুন"
+  },
+  "fieldStaffPage": {
+    "title": "মাঠকর্মী",
+    "subtitle": "মোবাইল অ্যাপে প্রেসক্রিপশন সংগ্রহকারী {{count}} জন মাঠকর্মী",
+    "add": "মাঠকর্মী যোগ করুন",
+    "addTitle": "মাঠকর্মী যোগ করুন",
+    "editTitle": "মাঠকর্মী সম্পাদনা",
+    "searchPlaceholder": "নাম, ফোন বা এলাকা দিয়ে খুঁজুন...",
+    "colArea": "এলাকা",
+    "colUploads": "আপলোড",
+    "colAddedOn": "যোগের তারিখ",
+    "uploadsShort": "{{count}}টি আপলোড",
+    "empty": "এখনও কোনো মাঠকর্মী নেই।",
+    "areaOptional": "এলাকা (ঐচ্ছিক)",
+    "areaPlaceholder": "যেমন: মিরপুর, ঢাকা",
+    "password": "পাসওয়ার্ড",
+    "newPasswordOptional": "নতুন পাসওয়ার্ড (ঐচ্ছিক)",
+    "passwordHint": "বর্তমান পাসওয়ার্ড রাখতে ফাঁকা রাখুন।",
+    "nameRequired": "নাম আবশ্যক",
+    "phoneInvalid": "সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)",
+    "passwordMin": "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে",
+    "activate": "সক্রিয় করুন",
+    "deactivate": "নিষ্ক্রিয় করুন (লগইন বন্ধ)"
+  },
+  "fieldRxPage": {
+    "title": "মাঠ প্রেসক্রিপশন",
+    "subtitle": "মাঠকর্মীদের আপলোড করা প্রেসক্রিপশন। ফোন নম্বরে অ্যাকাউন্ট খোলা হলে রোগী ও ডাক্তার দেখতে পান।",
+    "staff": "মাঠকর্মী",
+    "from": "থেকে",
+    "to": "পর্যন্ত",
+    "empty": "এই ফিল্টারে কোনো প্রেসক্রিপশন নেই।",
+    "linkedTo": "{{name}}-এর সাথে সংযুক্ত",
+    "disputedNote": "অ্যাকাউন্টধারী জানিয়েছেন এটি তার নয়।",
+    "returnToUnclaimed": "অসংযুক্ত অবস্থায় ফেরত দিন",
+    "fixPhone": "ফোন ঠিক করুন",
+    "fixPhoneTitle": "ফোন নম্বর সংশোধন",
+    "fixPhoneMessage": "প্রেসক্রিপশনটি বিচ্ছিন্ন হয়ে নতুন নম্বরের অ্যাকাউন্টে (থাকলে) আবার সংযুক্ত হবে।"
   }
 }

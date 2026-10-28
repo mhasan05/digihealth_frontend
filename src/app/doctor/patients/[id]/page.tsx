@@ -6,12 +6,13 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { LoadingSpinner } from '@/components/shared/loading-spinner'
+import { FieldPrescriptionCard } from '@/components/shared/field-prescription-card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { formatDateTime, formatFileSize } from '@/lib/utils'
 import {
   ArrowLeft, User, Phone, Droplets, MapPin, Calendar,
-  AlertTriangle, ShieldCheck, FileText, Eye, Download, HeartPulse,
+  AlertTriangle, ShieldCheck, FileText, Eye, Download, HeartPulse, ScrollText,
 } from 'lucide-react'
 import { PATIENT_CONDITIONS, type PatientCondition } from '@/types'
 
@@ -30,6 +31,13 @@ export default function DoctorPatientDetailPage({ params }: { params: Promise<{ 
   const { data: reports = [] } = useQuery({
     queryKey: ['doctor-patient-reports', id],
     queryFn: () => api.doctor.listReports(id),
+    enabled: !!patient,
+  })
+
+  // Only prescriptions linked to this patient's account are returned.
+  const { data: fieldPrescriptions = [] } = useQuery({
+    queryKey: ['doctor-patient-field-prescriptions', id],
+    queryFn: () => api.doctor.listFieldPrescriptions(id),
     enabled: !!patient,
   })
 
@@ -202,6 +210,23 @@ export default function DoctorPatientDetailPage({ params }: { params: Promise<{ 
                 </li>
               ))}
           </ul>
+        )}
+      </div>
+
+      {/* Prescriptions collected by field staff */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <ScrollText className="w-5 h-5 text-green-600" />
+          <h3 className="font-bold text-slate-900">{t('doctorPatientDetail.fieldPrescriptions')}</h3>
+          <span className="text-xs text-slate-400 ml-auto">{t('doctorPatientDetail.reportsCount', { count: fieldPrescriptions.length })}</span>
+        </div>
+
+        {fieldPrescriptions.length === 0 ? (
+          <p className="text-sm text-slate-500 py-6 text-center">{t('doctorPatientDetail.noFieldPrescriptions')}</p>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {fieldPrescriptions.map(rx => <FieldPrescriptionCard key={rx.id} rx={rx} />)}
+          </div>
         )}
       </div>
 

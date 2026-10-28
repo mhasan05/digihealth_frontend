@@ -4,6 +4,7 @@ import type {
   Bed, LabTest, Patient, HealthMetric, MedicalReport, ReportAccessLog,
   Appointment, Admission, LabOrder, LabResult,
   AdminDashboard, OwnerDashboard, ManagerDashboard, PathologistDashboard,
+  FieldStaff, FieldPrescription, AdminFieldPrescription, FieldPrescriptionStatus,
 } from '@/types'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
@@ -57,6 +58,7 @@ const encodeBody = (data?: unknown) =>
 const get  = <T>(path: string)                  => req<T>(path)
 const post = <T>(path: string, data?: unknown)  => req<T>(path, { method: 'POST',   body: encodeBody(data) })
 const put  = <T>(path: string, data?: unknown)  => req<T>(path, { method: 'PUT',    body: encodeBody(data) })
+const patch = <T>(path: string, data?: unknown) => req<T>(path, { method: 'PATCH',  body: encodeBody(data) })
 const del  = <T>(path: string)                  => req<T>(path, { method: 'DELETE' })
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -137,6 +139,28 @@ export const api = {
 
     rejectRoleApplication: (id: string, reason?: string) =>
       post<AdminRoleApplication>(`/api/admin/role-applications/${id}/reject/`, { reason }),
+
+    // Field staff (mobile prescription collectors) and what they upload
+    getFieldStaff: () =>
+      get<FieldStaff[]>('/api/admin/field-staff/'),
+
+    createFieldStaff: (data: { name: string; phone: string; password: string; area?: string }) =>
+      post<FieldStaff>('/api/admin/field-staff/', data),
+
+    updateFieldStaff: (id: string, data: Partial<{ name: string; area: string; status: 'Active' | 'Inactive'; password: string }>) =>
+      patch<FieldStaff>(`/api/admin/field-staff/${id}/`, data),
+
+    getFieldPrescriptions: (params?: {
+      status?: FieldPrescriptionStatus; phone?: string; staff?: string; date_from?: string; date_to?: string
+    }) => {
+      const entries = Object.entries(params ?? {}).filter(([, v]) => !!v) as [string, string][]
+      const qs = new URLSearchParams(entries).toString()
+      return get<AdminFieldPrescription[]>(`/api/admin/field-prescriptions/${qs ? `?${qs}` : ''}`)
+    },
+
+    // Correct a mistyped phone and/or send a disputed prescription back to 'unclaimed'.
+    updateFieldPrescription: (id: string, data: { phone?: string; status?: 'unclaimed' }) =>
+      patch<AdminFieldPrescription>(`/api/admin/field-prescriptions/${id}/`, data),
   },
 
   // ── Owner ─────────────────────────────────────────────────────────────────
@@ -418,6 +442,12 @@ export const api = {
 
     submitRoleApplication: (data: FormData) =>
       post<RoleApplication>('/api/patient/role-applications/', data),
+
+    getFieldPrescriptions: () =>
+      get<FieldPrescription[]>('/api/patient/field-prescriptions/'),
+
+    disputeFieldPrescription: (id: string, reason?: string) =>
+      post<void>(`/api/patient/field-prescriptions/${id}/dispute/`, { reason }),
   },
 
   // ── Doctor ────────────────────────────────────────────────────────────────
@@ -438,6 +468,10 @@ export const api = {
 
     listReports: (patientId: string) =>
       get<MedicalReport[]>(`/api/doctor/patients/${patientId}/reports/`),
+
+    // Viewing is logged server-side to the patient's privacy log.
+    listFieldPrescriptions: (patientId: string) =>
+      get<FieldPrescription[]>(`/api/doctor/patients/${patientId}/field-prescriptions/`),
 
     logAccess: (
       patientId: string,
